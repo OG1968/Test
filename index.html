@@ -3,16 +3,17 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>מרכז אפליקציות ווב</title>
+    <link rel="icon" type="image/x-icon" href="logo_white.png" />
+
+    <title>אפליקציות ווב</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
       :root {
         --primary-color: #4e54c8;
         --secondary-color: #8f94fb;
-        --accent-color: #ff7e5f;
-        --light-color: #f8f9fa;
+        --light-color: #ffe6a7;
         --dark-color: #343a40;
-        --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        --shadow: 0 4px 6px rgba(0, 0, 1, 1);
         --transition: all 0.3s ease;
       }
 
@@ -41,11 +42,15 @@
       }
 
       h1 {
-        font-size: 2.5rem;
+        font-size: 1.9rem;
+        text-shadow: #343a40 1px 1px 1px, #343a40 0 4px;
         margin-bottom: 1rem;
         color: var(--primary-color);
         position: relative;
         display: inline-block;
+        font-style: italic;
+        font-weight: bold;
+        animation: fadeIn 1s ease-in-out;
       }
 
       h1::after {
@@ -60,10 +65,11 @@
       }
 
       p.subtitle {
-        font-size: 1.2rem;
+        font-size: 1.4rem;
         color: #666;
         max-width: 700px;
         margin: 0 auto;
+
       }
 
       .apps-grid {
@@ -71,7 +77,6 @@
         grid-template-columns: repeat(2, 1fr); 
         gap: 2rem;
         margin-top: 1rem;
-
       }
 
       .app-card {
@@ -82,6 +87,9 @@
         transition: var(--transition);
         text-align: center;
         position: relative;
+        display: flex; 
+        flex-direction: column; 
+        height: 100%;
       }
 
       .app-card:hover {
@@ -102,6 +110,14 @@
 
       .app-info {
         padding: 1.5rem;
+        flex-grow: 1; 
+        display: flex; 
+        flex-direction: column; 
+        padding: 1rem;
+      }
+
+      .app-info .btn-container {
+        margin-top: auto; 
       }
 
       .app-info h3 {
@@ -112,7 +128,10 @@
       .app-info p {
         color: #666;
         font-size: 0.9rem;
-        min-height: 60px;
+        margin-bottom: 1rem; 
+        flex-grow: 1; 
+        min-height: auto; 
+        margin-bottom: 1rem;
       }
 
       .btn {
@@ -189,25 +208,88 @@
         }
       }
 
-      @media (max-width: 600px) {
-    .apps-grid {
-      grid-template-columns: 1fr; /* במסך קטן - עמודה אחת */
-    }
-  }
+      .about-card {
+        margin-top: 2rem; 
+        height: 220px; 
+      }
+      
+      .about-card .app-icon {
+        height: 80px; 
+      }
 
+      .about-card .btn {
+        margin-top: -60px; 
+        padding: 0.8rem 1.5rem; 
+      }
+
+      @media (max-width: 600px) {
+        .apps-grid {
+          grid-template-columns: 1fr; 
+        }
+      }
+
+      @media (max-width: 600px) {
+        .container {
+          padding: 1rem;
+        }
+
+        
+        .apps-grid {
+          grid-template-columns: repeat(2, 1fr);
+          gap: 1rem;
+        }
+        
+        .app-icon {
+          height: 100px;
+          font-size: 2rem;
+        }
+        
+        .app-info h3 {
+          font-size: 1rem;
+        }
+        
+        .app-info p {
+          font-size: 0.8rem;
+          min-height: 60px;
+        }
+        
+        .btn {
+          padding: 0.5rem 1rem;
+          font-size: 0.9rem;
+        }
+        
+        footer {
+          padding: 0.8rem;
+          font-size: 0.9rem;
+        }
+      }
+
+      /* התאמה נוספת למסכים קטנים מאוד */
+      @media (max-width: 400px) {
+        .apps-grid {
+          gap: 0.5rem;
+        }
+        
+        .app-icon {
+          height: 80px;
+        }
+        
+        .app-info p {
+          min-height: 80px; /* יותר מקום לטקסט ארוך */
+        }
+      }
     </style>
   </head>
   <body>
     <div class="container">
       <header>
-        <h1>מרכז אפליקציות הווב שלנו</h1>
+        <h1>מרכז ה WebApp שלנו</h1>
         <p class="subtitle">גלה את כל הכלים המקוונים שלנו הזמינים ישירות מהדפדפן ללא צורך בהורדה</p>
       </header>
 
       <div class="apps-grid">
         <!-- אפליקציה 1 -->
         <div class="app-card" data-category="productivity">
-          <div class="badge">🌐</div>
           <div class="app-icon">
             <i class="fas fa-book"></i>
           </div>
@@ -220,7 +302,6 @@
         </div>
         <!-- אפליקציה 2 -->
         <div class="app-card" data-category="social">
-          <div class="badge">🌐</div>
           <div class="app-icon">
             <i class="fa-solid fa-calculator"></i>
             </i>
@@ -234,7 +315,6 @@
         </div>
         <!-- אפליקציה 3 -->
         <div class="app-card" data-category="finance">
-          <div class="badge">🌐</div>
           <div class="app-icon">
             <i class="fa-solid fa-utensils"></i>
           </div>
@@ -247,7 +327,6 @@
         </div>
         <!-- אפליקציה 4 -->
         <div class="app-card" data-category="health">
-          <div class="badge">🌐</div>
           <div class="app-icon">
             <i class="fas fa-shirt"></i>
           </div>
@@ -259,9 +338,24 @@
           </div>
         </div>
       </div>
+      
+        <!-- אודותנו -->
+        <div class="app-card about-card" data-category="finance">
+          <div class="app-icon">
+            <div class="app-icon">
+              <img src="logo_white.png" alt="לוגו" style="width: 80px; height: 60px;">
+            </div>                    </div>
+          <div class="app-info">
+            <h3>אודותנו</h3>
+            <p>פרטים ליצירת קשר.</p>
+            <a href="about_me.html" class="btn">לכניסה <i class="fas fa-external-link-alt"></i>
+            </a>
+          </div>
+        </div>
+
       <footer>
         <div class="footer-content">
-          <p> 2025 כל הזכויות שמורות G©.</p>
+          <p> <strong>2025 כל הזכויות שמורות G©.</strong></p>
         </div>
       </footer>
   </body>
