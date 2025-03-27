@@ -12,6 +12,7 @@
       rel="stylesheet"
       href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     />
+    <link rel="icon" href="favicon.ico" type="image/x-icon" />
 
     <style>
       * {
@@ -971,6 +972,12 @@
 
       // ייבוא מ-JSON
       function importFromJson(event) {
+        // הוספת בדיקה שהאירוע קיים
+        if (!event || !event.target) {
+          console.error("Invalid event object");
+          return;
+        }
+
         const file = event.target.files[0];
         if (!file) {
           alert("לא נבחר קובץ!");
@@ -1002,10 +1009,8 @@
         };
 
         reader.readAsText(file);
-        event.target.value = ""; // איפוס הקלט
+        event.target.value = "";
       }
-      // איפוס ערך הקלט כדי לאפשר טעינה חוזרת של אותו קובץ
-      event.target.value = "";
     </script>
   </body>
 </html>
