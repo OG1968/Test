@@ -456,42 +456,79 @@
       // אתחול המפה
       function initMap() {
         const mapElement = document.getElementById("map");
+
+        // בדיקות מקיפות לאלמנט המפה
         if (!mapElement) {
-          console.error("אלמנט המפה לא נמצא!");
+          console.error("אלמנט המפה (#map) לא נמצא ב-DOM!");
+          showErrorToUser("אין אפשרות לטעון את המפה. אנא פנה לתמיכה טכנית.");
           return;
         }
 
-        // וידוא שלמפה יש גובה
+        // וידוא שלמפה יש גובה גלוי
         if (mapElement.offsetHeight === 0) {
-          mapElement.style.height = "300px";
+          console.warn("אלמנט המפה חסר גובה גלוי - הגדרת גובה ברירת מחדל");
+          mapElement.style.height = "400px";
         }
 
         try {
-          // יצירת המפה
+          // אתחול המפה עם הגדרות נוספות
           map = L.map("map", {
-            tap: false, // תיקון לבעיות במכשירים עם מסך מגע
+            tap: false, // תיקון לבעיות במסכי מגע
             dragging: true,
-            scrollWheelZoom: false,
+            scrollWheelZoom: true, // אפשר גלילת עכבר
+            zoomControl: true, // הצגת פקדי זום
           }).setView([32.0853, 34.7818], 13);
 
-          // הוספת שכבת המפה
+          // הוספת שכבת מפה עם הגדרות מלאות
           L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
             attribution:
-              '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-            maxZoom: 18,
+              '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+            maxZoom: 19,
             minZoom: 2,
+            detectRetina: true, // התאמה למסכים ברזולוציה גבוהה
           }).addTo(map);
 
-          // וידוא שהמפה מתרנדרת נכון
-          setTimeout(function () {
+          // וידוא רינדור נכון עם מספר ניסיונות
+          let retryCount = 0;
+          const checkMapSize = () => {
             map.invalidateSize();
-            map.setView([32.0853, 34.7818], 13);
-          }, 200);
+            if (map.getBounds().isValid() || retryCount >= 3) return;
+            retryCount++;
+            setTimeout(checkMapSize, 200);
+          };
+          setTimeout(checkMapSize, 100);
         } catch (error) {
-          console.error("שגיאה באתחול המפה:", error);
-          // נסה שוב אם נכשל
-          setTimeout(initMap, 500);
+          console.error("שגיאה קריטית באתחול המפה:", error);
+          showErrorToUser(
+            "אירעה שגיעה חמורה בטעינת המפה. אנא רענן את הדף או נסה מאוחר יותר."
+          );
+
+          // נסה שוב לאחר 3 שניות (רק בפיתוח)
+          if (process.env.NODE_ENV === "development") {
+            setTimeout(initMap, 3000);
+          }
         }
+      }
+
+      // פונקציית עזר להצגת שגיאות למשתמש
+      function showErrorToUser(message) {
+        const errorDiv = document.createElement("div");
+        errorDiv.style.cssText = `
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 15px;
+    background: #e74c3c;
+    color: white;
+    border-radius: 5px;
+    z-index: 1000;
+  `;
+        errorDiv.textContent = message;
+        document.body.appendChild(errorDiv);
+
+        // הסר את השגיאה לאחר 5 שניות
+        setTimeout(() => errorDiv.remove(), 5000);
       }
 
       // טעינת מקומות מה-local storage
@@ -576,6 +613,12 @@
         const field = e.target;
         const errorElement = document.getElementById(field.id + "-error");
 
+        // הוספת בדיקת null
+        if (!field || !errorElement) {
+          console.error("Element not found:", field ? field.id : "undefined");
+          return;
+        }
+
         if (field.value.trim() === "") {
           field.classList.add("invalid");
           errorElement.style.display = "block";
@@ -584,7 +627,6 @@
           errorElement.style.display = "none";
         }
 
-        // אימות מיוחד לקואורדינטות
         if (field.id === "place-coords") {
           const coords = extractCoordinates(field.value.trim());
           if (!coords) {
@@ -916,6 +958,7 @@
 
         try {
           routingControl = L.Routing.control({
+            serviceUrl: "http://your-osrm-server/route/v1",
             waypoints: [
               L.latLng(fromPlace.coords.lat, fromPlace.coords.lng),
               L.latLng(toPlace.coords.lat, toPlace.coords.lng),
