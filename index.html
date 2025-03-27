@@ -2,8 +2,11 @@
 <html lang="he" dir="rtl">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>אפליקציית אטרקציות עם OpenStreetMap</title>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>Trip Planner</title>
     <!-- Leaflet CSS -->
     <link
       rel="stylesheet"
@@ -16,234 +19,401 @@
       }
 
       body {
-        padding: 20px;
+        padding: 15px;
+        margin: 0;
+        background-color: #f5f7fa;
+        color: #333;
+        -webkit-text-size-adjust: 100%;
+      }
+
+      .container {
         max-width: 1200px;
         margin: 0 auto;
-        background-color: #f5f5f5;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
       }
 
-      h1,
-      h2,
-      h3 {
-        color: #333;
+      h1 {
+        text-align: center;
+        color: #2c3e50;
+        margin-bottom: 10px;
+        font-size: 1.8rem;
       }
 
-      .app-container {
+      .plan-section {
         background-color: white;
         padding: 20px;
         border-radius: 8px;
         box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
       }
 
-      .flex-container {
+      .route-section {
         display: flex;
-        gap: 20px;
         flex-wrap: wrap;
+        gap: 20px;
       }
 
-      .form-section,
-      .list-section {
+      .location-selector {
         flex: 1;
         min-width: 300px;
-        background-color: #fff;
-        padding: 15px;
+      }
+
+      .map-container {
+        flex: 2;
+        min-width: 100%;
+        height: 400px;
         border-radius: 8px;
-        box-shadow: 0 1px 5px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        background-color: #f0f0f0;
+        position: relative;
+        border: 1px solid #ddd;
+      }
+
+      .distance-info {
+        margin-top: 10px;
+        padding: 15px;
+        background-color: #e8f4fc;
+        border-radius: 4px;
+        width: 100%;
+        display: none;
+      }
+
+      .form-section {
+        background-color: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        margin-top: 20px;
+      }
+
+      .list-section {
+        background-color: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        margin-top: 20px;
+        display: none;
+      }
+
+      select,
+      input,
+      textarea {
+        width: 100%;
+        padding: 12px;
+        margin-bottom: 15px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 16px;
+        background-color: #fff;
+      }
+
+      textarea {
+        height: 100px;
+        resize: vertical;
       }
 
       label {
         display: block;
-        margin-bottom: 5px;
+        margin-bottom: 8px;
         font-weight: bold;
+        font-size: 1rem;
       }
 
-      input[type="text"],
-      select {
-        width: 100%;
-        padding: 8px;
-        margin-bottom: 15px;
-        border: 1px solid #ddd;
-        border-radius: 4px;
+      label.required:after {
+        content: " *";
+        color: #e74c3c;
       }
 
       button {
-        background-color: #4caf50;
+        background-color: #3498db;
         color: white;
         border: none;
-        padding: 8px 15px;
-        border-radius: 4px;
+        padding: 12px 18px;
+        border-radius: 6px;
         cursor: pointer;
+        font-size: 16px;
         margin-right: 10px;
+        margin-bottom: 10px;
+        transition: background-color 0.3s;
+        width: 100%;
       }
 
       button:hover {
-        background-color: #45a049;
+        background-color: #2980b9;
       }
 
       button.delete {
-        background-color: #f44336;
+        background-color: #e74c3c;
       }
 
       button.delete:hover {
-        background-color: #d32f2f;
+        background-color: #c0392b;
+      }
+
+      button.secondary {
+        background-color: #95a5a6;
+      }
+
+      button.secondary:hover {
+        background-color: #7f8c8d;
       }
 
       .star-rating {
-        font-size: 24px;
-        margin-bottom: 15px;
+        font-size: 28px;
+        margin: 15px 0;
+        text-align: center;
       }
 
       .star-rating span {
         cursor: pointer;
-        color: gray;
+        color: #ddd;
+        margin: 0 3px;
       }
 
       .star-rating span.active {
-        color: gold;
+        color: #f1c40f;
       }
 
-      .attraction-list {
-        max-height: 500px;
-        overflow-y: auto;
-        padding: 0;
-        list-style: none;
+      .place-item {
+        border-bottom: 1px solid #eee;
+        padding: 15px 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
       }
 
-      .attraction-item {
-        border: 1px solid #ddd;
-        padding: 10px;
-        margin-bottom: 10px;
-        border-radius: 4px;
-        background-color: white;
+      .place-info {
+        flex: 1;
+        min-width: 200px;
       }
 
-      .attraction-item.selected {
-        background-color: #f0f8ff;
-      }
-
-      .map-container {
-        margin-top: 20px;
-        height: 400px;
-        width: 100%;
-        border-radius: 8px;
-        overflow: hidden;
-      }
-
-      .route-info {
+      .place-actions {
+        display: flex;
+        gap: 10px;
         margin-top: 10px;
-        padding: 10px;
-        background-color: #e9f7ef;
-        border-radius: 4px;
+        width: 100%;
+      }
+
+      .category-header {
+        background-color: #3498db;
+        color: white;
+        padding: 12px;
+        margin: 25px 0 15px 0;
+        border-radius: 6px;
+        font-size: 1.2rem;
+      }
+
+      .error-message {
+        color: #e74c3c;
+        margin: -10px 0 15px 0;
+        font-size: 14px;
+        display: none;
+      }
+
+      input:invalid,
+      select:invalid,
+      textarea:invalid {
+        border-color: #e74c3c;
       }
 
       @media (max-width: 768px) {
-        .flex-container {
+        .route-section {
           flex-direction: column;
+        }
+
+        .location-selector,
+        .map-container {
+          width: 100%;
+        }
+
+        .map-container {
+          height: 350px;
+          margin-top: 20px;
+          order: 3;
+          z-index: 10;
+        }
+
+        .distance-info {
+          order: 2;
+          margin-top: 20px;
+        }
+
+        button {
+          padding: 14px 18px;
+          margin-bottom: 12px;
+        }
+      }
+
+      @media (max-width: 480px) {
+        body {
+          padding: 10px;
+        }
+
+        .map-container {
+          height: 300px;
+        }
+
+        .place-item {
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .place-actions {
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        h1 {
+          font-size: 1.5rem;
+        }
+
+        .category-header {
+          font-size: 1.1rem;
+          padding: 10px;
         }
       }
     </style>
   </head>
   <body>
-    <div class="app-container">
-      <h1>אפליקציית אטרקציות וניווט</h1>
+    <div class="container">
+      <h1>Trip Planner</h1>
 
-      <div class="flex-container">
-        <!-- טופס הוספת/עריכת אטרקציה -->
-        <div class="form-section">
-          <h2 id="form-title">הוספת אטרקציה חדשה</h2>
-
-          <div>
-            <label for="attraction-name">שם:</label>
-            <input type="text" id="attraction-name" placeholder="שם האטרקציה" />
-
-            <label for="attraction-category">קטגוריה:</label>
-            <select id="attraction-category">
-              <option value="אתר">אתר</option>
+      <div class="plan-section">
+        <div class="route-section">
+          <div class="location-selector">
+            <label for="from-category">ממקום:</label>
+            <select id="from-category">
+              <option value="">בחר קטגוריה</option>
+              <option value="מקום לינה">מקום לינה</option>
+              <option value="אתר תיירותי">אתר תיירותי</option>
               <option value="מסעדה">מסעדה</option>
               <option value="בית קפה">בית קפה</option>
               <option value="בר">בר</option>
-              <option value="שופינג">שופינג</option>
+              <option value="קניות">קניות</option>
+            </select>
+
+            <select id="from-place" disabled>
+              <option value="">בחר מקום</option>
+            </select>
+
+            <label for="to-category">אל מקום:</label>
+            <select id="to-category">
+              <option value="">בחר קטגוריה</option>
               <option value="מקום לינה">מקום לינה</option>
+              <option value="אתר תיירותי">אתר תיירותי</option>
+              <option value="מסעדה">מסעדה</option>
+              <option value="בית קפה">בית קפה</option>
+              <option value="בר">בר</option>
+              <option value="קניות">קניות</option>
             </select>
 
-            <label for="attraction-address">כתובת:</label>
-            <input
-              type="text"
-              id="attraction-address"
-              placeholder="כתובת האטרקציה"
-            />
+            <select id="to-place" disabled>
+              <option value="">בחר מקום</option>
+            </select>
+          </div>
 
-            <label for="attraction-link">קישור לגוגל מפות:</label>
-            <input
-              type="text"
-              id="attraction-link"
-              placeholder="https://www.google.com/maps/place/..."
-            />
+          <div class="distance-info" id="distance-info">
+            <h3>מרחק רגלי בין המקומות</h3>
+            <p><strong>מרחק:</strong> <span id="distance"></span></p>
+            <p><strong>זמן משוער:</strong> <span id="duration"></span></p>
+          </div>
 
-            <label>דירוג (1-5):</label>
-            <div class="star-rating" id="star-rating">
-              <span data-rating="1">★</span>
-              <span data-rating="2">★</span>
-              <span data-rating="3">★</span>
-              <span data-rating="4">★</span>
-              <span data-rating="5">★</span>
+          <div class="map-container" id="map">
+            <div
+              style="
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                text-align: center;
+              "
+            >
+              <p>טוען מפה...</p>
             </div>
-
-            <button id="save-btn">הוסף אטרקציה</button>
-            <button id="cancel-btn" style="display: none">בטל</button>
-            <input type="hidden" id="edit-id" value="" />
           </div>
-        </div>
-
-        <!-- רשימת אטרקציות -->
-        <div class="list-section">
-          <h2>רשימת אטרקציות</h2>
-
-          <div>
-            <label for="category-filter">סינון לפי קטגוריה:</label>
-            <select id="category-filter">
-              <option value="all">כל הקטגוריות</option>
-              <option value="אתר">אתרים</option>
-              <option value="מסעדה">מסעדות</option>
-              <option value="בית קפה">בתי קפה</option>
-              <option value="בר">בארים</option>
-              <option value="שופינג">שופינג</option>
-              <option value="מקום לינה">מקומות לינה</option>
-            </select>
-          </div>
-
-          <div>
-            <label for="user-location">מיקום נוכחי (קו רוחב,קו אורך):</label>
-            <input
-              type="text"
-              id="user-location"
-              placeholder="32.0853,34.7818"
-            />
-          </div>
-
-          <ul class="attraction-list" id="attraction-list">
-            <!-- כאן יופיעו האטרקציות -->
-          </ul>
         </div>
       </div>
 
-      <!-- מפה וניווט -->
-      <div style="margin-top: 20px">
-        <h2>מפה וניווט</h2>
+      <div class="form-section">
+        <h2>הוספת מקום חדש</h2>
+        <label for="place-name" class="required">שם המקום:</label>
+        <input type="text" id="place-name" placeholder="הזן שם מקום" required />
+        <div class="error-message" id="name-error">שדה זה הינו חובה</div>
 
-        <div class="map-container" id="map"></div>
+        <label for="place-category" class="required">קטגוריה:</label>
+        <select id="place-category" required>
+          <option value="מקום לינה">מקום לינה</option>
+          <option value="אתר תיירותי">אתר תיירותי</option>
+          <option value="מסעדה">מסעדה</option>
+          <option value="בית קפה">בית קפה</option>
+          <option value="בר">בר</option>
+          <option value="קניות">קניות</option>
+        </select>
+        <div class="error-message" id="category-error">שדה זה הינו חובה</div>
 
-        <div id="route-info" class="route-info" style="display: none">
-          <h3 id="route-title"></h3>
-          <p><strong>מרחק הליכה משוער:</strong> <span id="distance"></span></p>
-          <p><strong>זמן הגעה משוער:</strong> <span id="duration"></span></p>
+        <label for="place-address" class="required">כתובת:</label>
+        <input
+          type="text"
+          id="place-address"
+          placeholder="הזן כתובת"
+          required
+        />
+        <div class="error-message" id="address-error">שדה זה הינו חובה</div>
+
+        <label for="place-description">על המקום:</label>
+        <textarea
+          id="place-description"
+          placeholder="כתוב תיאור על המקום (לא חובה)"
+        ></textarea>
+
+        <label for="place-coords" class="required"
+          >קואורדינטות (קו רוחב,קו אורך):</label
+        >
+        <input
+          type="text"
+          id="place-coords"
+          placeholder="לדוגמה: 32.0853,34.7818"
+          required
+        />
+        <div class="error-message" id="coords-error">
+          אנא הזן קואורדינטות בפורמט: "קו רוחב,קו אורך"
+        </div>
+
+        <label class="required">דירוג:</label>
+        <div class="star-rating" id="star-rating">
+          <span data-rating="1">★</span>
+          <span data-rating="2">★</span>
+          <span data-rating="3">★</span>
+          <span data-rating="4">★</span>
+          <span data-rating="5">★</span>
+        </div>
+
+        <button id="save-btn">שמור מקום</button>
+        <button id="show-list-btn" class="secondary">הצג רשימה</button>
+      </div>
+
+      <div class="list-section" id="list-section">
+        <h2>רשימת המקומות</h2>
+        <div id="places-list"></div>
+
+        <div style="margin-top: 20px">
+          <button id="export-btn" class="secondary">ייצא לקובץ JSON</button>
+          <button id="import-btn" class="secondary">ייבא מקובץ JSON</button>
+          <input
+            type="file"
+            id="file-input"
+            style="display: none"
+            accept=".json"
+          />
         </div>
       </div>
     </div>
 
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <!-- Leaflet Routing Machine (לחישוב מסלולים) -->
+    <!-- Leaflet Routing Machine -->
     <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
     <link
       rel="stylesheet"
@@ -251,82 +421,89 @@
     />
 
     <script>
-      // סוגי האטרקציות
-      const categories = [
-        "אתר",
-        "מסעדה",
-        "בית קפה",
-        "בר",
-        "שופינג",
-        "מקום לינה",
-      ];
-
-      // אייקונים לכל קטגוריה
-      const categoryIcons = {
-        אתר: "https://maps.google.com/mapfiles/ms/icons/red-dot.png",
-        מסעדה: "https://maps.google.com/mapfiles/ms/icons/green-dot.png",
-        "בית קפה": "https://maps.google.com/mapfiles/ms/icons/coffeehouse.png",
-        בר: "https://maps.google.com/mapfiles/ms/icons/bar.png",
-        שופינג: "https://maps.google.com/mapfiles/ms/icons/shopping.png",
-        "מקום לינה": "https://maps.google.com/mapfiles/ms/icons/lodging.png",
-      };
-
       // משתנים גלובליים
-      let attractions = [];
+      let places = [];
       let map;
-      let userMarker;
-      let attractionMarkers = [];
       let routingControl;
+      let currentRating = 3;
+      let editingPlaceId = null;
 
       // טעינת האפליקציה
       document.addEventListener("DOMContentLoaded", function () {
-        // טעינת אטרקציות מה-local storage
-        loadAttractions();
+        // אתחול המפה עם השהייה לוודא שכל האלמנטים טעונים
+        setTimeout(function () {
+          initMap();
+          // וידוא שהמפה מתרנדרת שוב לאחר טעינה
+          setTimeout(function () {
+            if (map) map.invalidateSize();
+          }, 500);
+        }, 300);
 
-        // אתחול המפה
-        initMap();
+        // טעינת מקומות מה-local storage
+        loadPlaces();
 
         // הגדרת אירועים
         setupEventListeners();
 
-        // הצגת אטרקציות
-        renderAttractions();
+        // עדכון רשימות הבחירה
+        updatePlaceSelectors();
+
+        // הגדרת דירוג התחלתי
+        setRating(3);
       });
 
-      // טעינת אטרקציות מה-local storage
-      function loadAttractions() {
-        const savedAttractions = localStorage.getItem("attractions");
-        if (savedAttractions) {
-          attractions = JSON.parse(savedAttractions);
+      // אתחול המפה
+      function initMap() {
+        const mapElement = document.getElementById("map");
+        if (!mapElement) {
+          console.error("אלמנט המפה לא נמצא!");
+          return;
+        }
+
+        // וידוא שלמפה יש גובה
+        if (mapElement.offsetHeight === 0) {
+          mapElement.style.height = "300px";
+        }
+
+        try {
+          // יצירת המפה
+          map = L.map("map", {
+            tap: false, // תיקון לבעיות במכשירים עם מסך מגע
+            dragging: true,
+            scrollWheelZoom: false,
+          }).setView([32.0853, 34.7818], 13);
+
+          // הוספת שכבת המפה
+          L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            attribution:
+              '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 18,
+            minZoom: 2,
+          }).addTo(map);
+
+          // וידוא שהמפה מתרנדרת נכון
+          setTimeout(function () {
+            map.invalidateSize();
+            map.setView([32.0853, 34.7818], 13);
+          }, 200);
+        } catch (error) {
+          console.error("שגיאה באתחול המפה:", error);
+          // נסה שוב אם נכשל
+          setTimeout(initMap, 500);
         }
       }
 
-      // שמירת אטרקציות ב-local storage
-      function saveAttractions() {
-        localStorage.setItem("attractions", JSON.stringify(attractions));
+      // טעינת מקומות מה-local storage
+      function loadPlaces() {
+        const savedPlaces = localStorage.getItem("tripPlaces");
+        if (savedPlaces) {
+          places = JSON.parse(savedPlaces);
+        }
       }
 
-      // אתחול המפה עם OpenStreetMap
-      function initMap() {
-        const telAviv = [32.0853, 34.7818];
-        map = L.map("map").setView(telAviv, 13);
-
-        // הוספת מפת OpenStreetMap
-        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-          attribution:
-            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        }).addTo(map);
-
-        // הוספת אירוע לחיצה על המפה להגדרת מיקום משתמש
-        map.on("click", function (e) {
-          setUserLocation(e.latlng.lat, e.latlng.lng);
-          document.getElementById(
-            "user-location"
-          ).value = `${e.latlng.lat},${e.latlng.lng}`;
-        });
-
-        // עדכון סמני האטרקציות
-        updateMapMarkers();
+      // שמירת מקומות ב-local storage
+      function savePlaces() {
+        localStorage.setItem("tripPlaces", JSON.stringify(places));
       }
 
       // הגדרת אירועים
@@ -339,40 +516,130 @@
           });
         });
 
-        // סינון אטרקציות
-        document
-          .getElementById("category-filter")
-          .addEventListener("change", function () {
-            renderAttractions();
-          });
-
-        // שמירת אטרקציה
+        // שמירת מקום
         document
           .getElementById("save-btn")
-          .addEventListener("click", saveAttraction);
+          .addEventListener("click", savePlace);
 
-        // ביטול עריכה
+        // הצגת רשימה
         document
-          .getElementById("cancel-btn")
-          .addEventListener("click", cancelEdit);
+          .getElementById("show-list-btn")
+          .addEventListener("click", showList);
 
-        // עדכון מיקום משתמש
+        // ייצוא וייבוא
         document
-          .getElementById("user-location")
+          .getElementById("export-btn")
+          .addEventListener("click", exportToJson);
+        document.getElementById("import-btn").addEventListener("click", () => {
+          document.getElementById("file-input").click();
+        });
+        document
+          .getElementById("file-input")
+          .addEventListener("change", importFromJson);
+
+        // בחירת קטגוריות
+        document
+          .getElementById("from-category")
           .addEventListener("change", function () {
-            const coords = this.value.split(",");
-            if (coords.length === 2) {
-              const lat = parseFloat(coords[0]);
-              const lng = parseFloat(coords[1]);
-              if (!isNaN(lat) && !isNaN(lng)) {
-                setUserLocation(lat, lng);
-              }
-            }
+            updatePlaceSelector("from-place", this.value);
           });
+
+        document
+          .getElementById("to-category")
+          .addEventListener("change", function () {
+            updatePlaceSelector("to-place", this.value);
+          });
+
+        // בחירת מקומות
+        document
+          .getElementById("from-place")
+          .addEventListener("change", calculateRoute);
+        document
+          .getElementById("to-place")
+          .addEventListener("change", calculateRoute);
+
+        // אימות שדות
+        document
+          .getElementById("place-name")
+          .addEventListener("input", validateField);
+        document
+          .getElementById("place-address")
+          .addEventListener("input", validateField);
+        document
+          .getElementById("place-coords")
+          .addEventListener("input", validateField);
+      }
+
+      // אימות שדה
+      function validateField(e) {
+        const field = e.target;
+        const errorElement = document.getElementById(field.id + "-error");
+
+        if (field.value.trim() === "") {
+          field.classList.add("invalid");
+          errorElement.style.display = "block";
+        } else {
+          field.classList.remove("invalid");
+          errorElement.style.display = "none";
+        }
+
+        // אימות מיוחד לקואורדינטות
+        if (field.id === "place-coords") {
+          const coords = extractCoordinates(field.value.trim());
+          if (!coords) {
+            field.classList.add("invalid");
+            errorElement.style.display = "block";
+          } else {
+            field.classList.remove("invalid");
+            errorElement.style.display = "none";
+          }
+        }
+      }
+
+      // עדכון רשימות הבחירה
+      function updatePlaceSelectors() {
+        updatePlaceSelector(
+          "from-place",
+          document.getElementById("from-category").value
+        );
+        updatePlaceSelector(
+          "to-place",
+          document.getElementById("to-category").value
+        );
+      }
+
+      // עדכון רשימת מקומות לפי קטגוריה
+      function updatePlaceSelector(selectorId, category) {
+        const selector = document.getElementById(selectorId);
+        selector.innerHTML = '<option value="">בחר מקום</option>';
+
+        if (!category) {
+          selector.disabled = true;
+          return;
+        }
+
+        const categoryPlaces = places.filter(
+          (place) => place.category === category
+        );
+
+        if (categoryPlaces.length === 0) {
+          selector.disabled = true;
+          return;
+        }
+
+        selector.disabled = false;
+
+        categoryPlaces.forEach((place) => {
+          const option = document.createElement("option");
+          option.value = place.id;
+          option.textContent = place.name;
+          selector.appendChild(option);
+        });
       }
 
       // הגדרת דירוג בכוכבים
       function setRating(rating) {
+        currentRating = rating;
         const stars = document.querySelectorAll("#star-rating span");
         stars.forEach((star) => {
           const starRating = parseInt(star.getAttribute("data-rating"));
@@ -384,266 +651,263 @@
         });
       }
 
-      // קבלת הדירוג הנוכחי
-      function getCurrentRating() {
-        const activeStars = document.querySelectorAll(
-          "#star-rating span.active"
-        );
-        return activeStars.length;
-      }
-
-      // שמירת אטרקציה חדשה או עדכון אטרקציה קיימת
-      function saveAttraction() {
-        const name = document.getElementById("attraction-name").value.trim();
-        const category = document.getElementById("attraction-category").value;
-        const address = document
-          .getElementById("attraction-address")
+      // שמירת מקום חדש או עדכון מקום קיים
+      function savePlace() {
+        const name = document.getElementById("place-name").value.trim();
+        const category = document.getElementById("place-category").value;
+        const address = document.getElementById("place-address").value.trim();
+        const description = document
+          .getElementById("place-description")
           .value.trim();
-        const link = document.getElementById("attraction-link").value.trim();
-        const rating = getCurrentRating();
-        const editId = document.getElementById("edit-id").value;
+        const coordsInput = document
+          .getElementById("place-coords")
+          .value.trim();
 
-        // בדיקת תקינות
-        if (!name || !address || !link) {
-          alert("אנא מלא את כל השדות");
-          return;
+        // בדיקת תקינות שדות חובה
+        let isValid = true;
+
+        if (!name) {
+          document.getElementById("name-error").style.display = "block";
+          document.getElementById("place-name").classList.add("invalid");
+          isValid = false;
+        } else {
+          document.getElementById("name-error").style.display = "none";
+          document.getElementById("place-name").classList.remove("invalid");
         }
 
-        // חילוץ קואורדינטות מהקישור
-        const coords = extractCoordinatesFromLink(link);
+        if (!address) {
+          document.getElementById("address-error").style.display = "block";
+          document.getElementById("place-address").classList.add("invalid");
+          isValid = false;
+        } else {
+          document.getElementById("address-error").style.display = "none";
+          document.getElementById("place-address").classList.remove("invalid");
+        }
+
+        // חילוץ קואורדינטות
+        const coords = extractCoordinates(coordsInput);
         if (!coords) {
-          alert(
-            'אנא הזן קואורדינטות בפורמט: "קו רוחב,קו אורך" (לדוגמה: 32.0853,34.7818) או קישור תקין לגוגל מפות'
-          );
+          document.getElementById("coords-error").style.display = "block";
+          document.getElementById("place-coords").classList.add("invalid");
+          isValid = false;
+        } else {
+          document.getElementById("coords-error").style.display = "none";
+          document.getElementById("place-coords").classList.remove("invalid");
+        }
+
+        if (!isValid) {
+          alert("אנא מלא את כל השדות המסומנים בכוכבית (*)");
           return;
         }
 
-        if (editId) {
-          // עריכת אטרקציה קיימת
-          const index = attractions.findIndex((att) => att.id === editId);
+        if (editingPlaceId) {
+          // עריכת מקום קיים
+          const index = places.findIndex(
+            (place) => place.id === editingPlaceId
+          );
           if (index !== -1) {
-            attractions[index] = {
-              id: editId,
+            places[index] = {
+              id: editingPlaceId,
               name,
               category,
               address,
-              link,
-              rating,
+              description,
               coords,
+              rating: currentRating,
             };
           }
         } else {
-          // הוספת אטרקציה חדשה
-          const attraction = {
+          // הוספת מקום חדש
+          const place = {
             id: Date.now().toString(),
             name,
             category,
             address,
-            link,
-            rating,
+            description,
             coords,
+            rating: currentRating,
           };
-          attractions.push(attraction);
+          places.push(place);
         }
 
         // שמירה ועדכון תצוגה
-        saveAttractions();
-        renderAttractions();
+        savePlaces();
+        updatePlaceSelectors();
         resetForm();
-        updateMapMarkers();
+
+        // רענון המפה
+        if (map) map.invalidateSize();
       }
 
-      // חילוץ קואורדינטות מקישור גוגל מפות או מקואורדינטות ישירות
-      function extractCoordinatesFromLink(link) {
-        try {
-          // בדיקה אם זו קואורדינטה ישירה (מספר,מספר)
-          const directCoords = link
-            .trim()
-            .match(/^(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)$/);
-          if (directCoords) {
-            return {
-              lat: parseFloat(directCoords[1]),
-              lng: parseFloat(directCoords[2]),
-            };
-          }
-
-          // ניסיון לחילוץ מקישור מסוג https://www.google.com/maps/place/.../@32.0853,34.7818
-          const mapLinkMatch = link.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
-          if (mapLinkMatch) {
-            return {
-              lat: parseFloat(mapLinkMatch[1]),
-              lng: parseFloat(mapLinkMatch[2]),
-            };
-          }
-
-          // ניסיון לחילוץ מקישור מסוג https://www.google.com/maps?q=32.0853,34.7818
-          const url = new URL(link);
-          const q = url.searchParams.get("q");
-          if (q) {
-            const parts = q.split(",");
-            if (parts.length === 2) {
-              return {
-                lat: parseFloat(parts[0]),
-                lng: parseFloat(parts[1]),
-              };
-            }
-          }
-
-          return null;
-        } catch {
-          return null;
+      // חילוץ קואורדינטות
+      function extractCoordinates(input) {
+        const match = input.match(/^(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)$/);
+        if (match) {
+          return {
+            lat: parseFloat(match[1]),
+            lng: parseFloat(match[2]),
+          };
         }
-      }
-
-      // ביטול עריכה
-      function cancelEdit() {
-        resetForm();
+        return null;
       }
 
       // איפוס הטופס
       function resetForm() {
-        document.getElementById("attraction-name").value = "";
-        document.getElementById("attraction-address").value = "";
-        document.getElementById("attraction-link").value = "";
+        document.getElementById("place-name").value = "";
+        document.getElementById("place-address").value = "";
+        document.getElementById("place-description").value = "";
+        document.getElementById("place-coords").value = "";
         setRating(3);
-        document.getElementById("edit-id").value = "";
-        document.getElementById("save-btn").textContent = "הוסף אטרקציה";
-        document.getElementById("form-title").textContent =
-          "הוספת אטרקציה חדשה";
-        document.getElementById("cancel-btn").style.display = "none";
+        editingPlaceId = null;
+        document.getElementById("save-btn").textContent = "שמור מקום";
+
+        // איפוס הודעות שגיאה
+        document.querySelectorAll(".error-message").forEach((el) => {
+          el.style.display = "none";
+        });
+        document.querySelectorAll("input, select").forEach((el) => {
+          el.classList.remove("invalid");
+        });
       }
 
-      // הצגת אטרקציות ברשימה
-      function renderAttractions() {
-        const categoryFilter = document.getElementById("category-filter").value;
-        const filteredAttractions =
-          categoryFilter === "all"
-            ? attractions
-            : attractions.filter((att) => att.category === categoryFilter);
+      // הצגת רשימת המקומות
+      function showList() {
+        const listSection = document.getElementById("list-section");
+        const placesList = document.getElementById("places-list");
 
-        const listElement = document.getElementById("attraction-list");
-        listElement.innerHTML = "";
+        placesList.innerHTML = "";
 
-        if (filteredAttractions.length === 0) {
-          listElement.innerHTML = "<li>לא נמצאו אטרקציות</li>";
-          return;
-        }
+        // מיון לפי קטגוריה ולפי שם
+        const sortedPlaces = [...places].sort((a, b) => {
+          if (a.category < b.category) return -1;
+          if (a.category > b.category) return 1;
+          return a.name.localeCompare(b.name);
+        });
 
-        filteredAttractions.forEach((attraction) => {
-          const li = document.createElement("li");
-          li.className = "attraction-item";
-          li.innerHTML = `
-                    <h3>${attraction.name}</h3>
-                    <p><strong>קטגוריה:</strong> ${attraction.category}</p>
-                    <p><strong>כתובת:</strong> ${attraction.address}</p>
-                    <p><strong>דירוג:</strong> ${"★".repeat(
-                      attraction.rating
-                    )}${"☆".repeat(5 - attraction.rating)}</p>
-                    <p><a href="${
-                      attraction.link
-                    }" target="_blank">פתח בגוגל מפות</a></p>
-                    <button class="route-btn" data-id="${
-                      attraction.id
-                    }">חשב מסלול</button>
-                    <button class="edit-btn" data-id="${
-                      attraction.id
-                    }">ערוך</button>
-                    <button class="delete-btn" data-id="${
-                      attraction.id
-                    }">מחק</button>
+        let currentCategory = "";
+
+        sortedPlaces.forEach((place) => {
+          if (place.category !== currentCategory) {
+            currentCategory = place.category;
+            const categoryHeader = document.createElement("h3");
+            categoryHeader.className = "category-header";
+            categoryHeader.textContent = currentCategory;
+            placesList.appendChild(categoryHeader);
+          }
+
+          const placeItem = document.createElement("div");
+          placeItem.className = "place-item";
+
+          const placeInfo = document.createElement("div");
+          placeInfo.className = "place-info";
+
+          let descriptionHtml = "";
+          if (place.description) {
+            descriptionHtml = `<p><strong>תיאור:</strong> ${place.description}</p>`;
+          }
+
+          placeInfo.innerHTML = `
+                    <h4>${place.name}</h4>
+                    <p>${place.address}</p>
+                    ${descriptionHtml}
+                    <p>קואורדינטות: ${place.coords.lat.toFixed(
+                      6
+                    )}, ${place.coords.lng.toFixed(6)}</p>
+                    <p>דירוג: ${"★".repeat(place.rating)}${"☆".repeat(
+            5 - place.rating
+          )}</p>
                 `;
-          listElement.appendChild(li);
+
+          const placeActions = document.createElement("div");
+          placeActions.className = "place-actions";
+          placeActions.innerHTML = `
+                    <button class="delete" data-id="${place.id}">מחק</button>
+                    <button class="edit-btn" data-id="${place.id}">עדכן</button>
+                `;
+
+          placeItem.appendChild(placeInfo);
+          placeItem.appendChild(placeActions);
+          placesList.appendChild(placeItem);
         });
 
         // הוספת אירועים לכפתורים
+        document.querySelectorAll(".delete").forEach((btn) => {
+          btn.addEventListener("click", function () {
+            deletePlace(this.getAttribute("data-id"));
+          });
+        });
+
         document.querySelectorAll(".edit-btn").forEach((btn) => {
           btn.addEventListener("click", function () {
-            editAttraction(this.getAttribute("data-id"));
+            editPlace(this.getAttribute("data-id"));
           });
         });
 
-        document.querySelectorAll(".delete-btn").forEach((btn) => {
-          btn.addEventListener("click", function () {
-            deleteAttraction(this.getAttribute("data-id"));
-          });
-        });
-
-        document.querySelectorAll(".route-btn").forEach((btn) => {
-          btn.addEventListener("click", function () {
-            calculateRoute(this.getAttribute("data-id"));
-          });
-        });
+        listSection.style.display = "block";
       }
 
-      // עריכת אטרקציה
-      function editAttraction(id) {
-        const attraction = attractions.find((att) => att.id === id);
-        if (!attraction) return;
+      // מחיקת מקום
+      function deletePlace(id) {
+        if (confirm("האם אתה בטוח שברצונך למחוק את המקום?")) {
+          places = places.filter((place) => place.id !== id);
+          savePlaces();
+          updatePlaceSelectors();
+          showList();
 
-        document.getElementById("attraction-name").value = attraction.name;
-        document.getElementById("attraction-category").value =
-          attraction.category;
-        document.getElementById("attraction-address").value =
-          attraction.address;
-        document.getElementById("attraction-link").value = attraction.link;
-        setRating(attraction.rating);
-        document.getElementById("edit-id").value = attraction.id;
-        document.getElementById("save-btn").textContent = "שמור שינויים";
-        document.getElementById("form-title").textContent = "עריכת אטרקציה";
-        document.getElementById("cancel-btn").style.display = "inline-block";
-      }
-
-      // מחיקת אטרקציה
-      function deleteAttraction(id) {
-        if (confirm("האם אתה בטוח שברצונך למחוק את האטרקציה?")) {
-          attractions = attractions.filter((att) => att.id !== id);
-          saveAttractions();
-          renderAttractions();
-          updateMapMarkers();
+          // רענון המפה
+          if (map) map.invalidateSize();
         }
       }
 
-      // הגדרת מיקום משתמש
-      function setUserLocation(lat, lng) {
-        // הסרת סמן קודם אם קיים
-        if (userMarker) {
-          map.removeLayer(userMarker);
-        }
+      // עריכת מקום
+      function editPlace(id) {
+        const place = places.find((p) => p.id === id);
+        if (!place) return;
 
-        // הוספת סמן חדש
-        userMarker = L.marker([lat, lng], {
-          icon: L.icon({
-            iconUrl:
-              "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-blue.png",
-            iconSize: [25, 41],
-          }),
-        })
-          .addTo(map)
-          .bindPopup("אתה כאן")
-          .openPopup();
+        document.getElementById("place-name").value = place.name;
+        document.getElementById("place-category").value = place.category;
+        document.getElementById("place-address").value = place.address;
+        document.getElementById("place-description").value =
+          place.description || "";
+        document.getElementById(
+          "place-coords"
+        ).value = `${place.coords.lat},${place.coords.lng}`;
+        setRating(place.rating);
+        editingPlaceId = place.id;
+        document.getElementById("save-btn").textContent = "עדכן מקום";
 
-        // מרכז את המפה על המיקום החדש
-        map.setView([lat, lng], 13);
+        // איפוס הודעות שגיאה
+        document.querySelectorAll(".error-message").forEach((el) => {
+          el.style.display = "none";
+        });
+        document.querySelectorAll("input, select").forEach((el) => {
+          el.classList.remove("invalid");
+        });
+
+        // גלילה לטופס
+        document
+          .querySelector(".form-section")
+          .scrollIntoView({ behavior: "smooth" });
       }
 
       // חישוב מסלול
-      function calculateRoute(attractionId) {
-        const attraction = attractions.find((att) => att.id === attractionId);
-        if (!attraction || !userMarker) {
-          alert("אנא הגדר מיקום נוכחי תחילה");
+      function calculateRoute() {
+        const fromId = document.getElementById("from-place").value;
+        const toId = document.getElementById("to-place").value;
+
+        if (!fromId || !toId) {
+          document.getElementById("distance-info").style.display = "none";
+          if (routingControl) {
+            map.removeControl(routingControl);
+            routingControl = null;
+          }
           return;
         }
 
-        // הדגשת האטרקציה הנבחרת ברשימה
-        document.querySelectorAll(".attraction-item").forEach((item) => {
-          item.classList.remove("selected");
-          if (
-            item.querySelector(".route-btn").getAttribute("data-id") ===
-            attractionId
-          ) {
-            item.classList.add("selected");
-          }
-        });
+        const fromPlace = places.find((p) => p.id === fromId);
+        const toPlace = places.find((p) => p.id === toId);
+
+        if (!fromPlace || !toPlace) return;
 
         // הסרת מסלול קודם אם קיים
         if (routingControl) {
@@ -653,20 +917,20 @@
         // יצירת מסלול חדש
         routingControl = L.Routing.control({
           waypoints: [
-            L.latLng(userMarker.getLatLng().lat, userMarker.getLatLng().lng),
-            L.latLng(attraction.coords.lat, attraction.coords.lng),
+            L.latLng(fromPlace.coords.lat, fromPlace.coords.lng),
+            L.latLng(toPlace.coords.lat, toPlace.coords.lng),
           ],
-          routeWhileDragging: true,
+          routeWhileDragging: false,
           showAlternatives: false,
           addWaypoints: false,
           draggableWaypoints: false,
           fitSelectedRoutes: true,
           lineOptions: {
-            styles: [{ color: "#4CAF50", opacity: 0.7, weight: 5 }],
+            styles: [{ color: "#3498db", opacity: 0.7, weight: 5 }],
           },
           createMarker: function () {
             return null;
-          }, // לא להציג סמנים על המסלול
+          },
         }).addTo(map);
 
         // הצגת פרטי המסלול
@@ -674,39 +938,72 @@
           const routes = e.routes;
           const route = routes[0];
 
-          const routeInfo = document.getElementById("route-info");
-          document.getElementById(
-            "route-title"
-          ).textContent = `מסלול ל${attraction.name}`;
+          const distanceInfo = document.getElementById("distance-info");
           document.getElementById("distance").textContent =
-            route.summary.totalDistance.toFixed(0) + " מטרים";
+            (route.summary.totalDistance / 1000).toFixed(1) + ' ק"מ';
           document.getElementById("duration").textContent =
             Math.round(route.summary.totalTime / 60) + " דקות";
-          routeInfo.style.display = "block";
+          distanceInfo.style.display = "block";
+
+          // וידוא שהמפה מתרנדרת נכון לאחר חישוב המסלול
+          setTimeout(function () {
+            if (map) {
+              map.invalidateSize();
+              map.setView(
+                [
+                  (fromPlace.coords.lat + toPlace.coords.lat) / 2,
+                  (fromPlace.coords.lng + toPlace.coords.lng) / 2,
+                ],
+                13
+              );
+            }
+          }, 100);
         });
       }
 
-      // עדכון סמנים על המפה
-      function updateMapMarkers() {
-        // הסרת סמנים קודמים
-        attractionMarkers.forEach((marker) => map.removeLayer(marker));
-        attractionMarkers = [];
+      // ייצוא ל-JSON
+      function exportToJson() {
+        const dataStr = JSON.stringify(places, null, 2);
+        const dataUri =
+          "data:application/json;charset=utf-8," + encodeURIComponent(dataStr);
 
-        // הוספת סמנים חדשים
-        attractions.forEach((attraction) => {
-          const marker = L.marker(
-            [attraction.coords.lat, attraction.coords.lng],
-            {
-              icon: L.icon({
-                iconUrl: categoryIcons[attraction.category],
-                iconSize: [30, 30],
-              }),
+        const exportFileDefaultName = "trip-places.json";
+
+        const linkElement = document.createElement("a");
+        linkElement.setAttribute("href", dataUri);
+        linkElement.setAttribute("download", exportFileDefaultName);
+        linkElement.click();
+      }
+
+      // ייבוא מ-JSON
+      function importFromJson(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          try {
+            const importedPlaces = JSON.parse(e.target.result);
+            if (Array.isArray(importedPlaces)) {
+              places = importedPlaces;
+              savePlaces();
+              updatePlaceSelectors();
+              showList();
+              alert("המקומות יובאו בהצלחה!");
+
+              // רענון המפה
+              if (map) map.invalidateSize();
+            } else {
+              alert("קובץ לא תקין");
             }
-          )
-            .addTo(map)
-            .bindPopup(attraction.name);
-          attractionMarkers.push(marker);
-        });
+          } catch (error) {
+            alert("שגיאה בקריאת הקובץ: " + error.message);
+          }
+        };
+        reader.readAsText(file);
+
+        // איפוס ערך הקלט כדי לאפשר טעינה חוזרת של אותו קובץ
+        event.target.value = "";
       }
     </script>
   </body>
