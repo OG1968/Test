@@ -3,6 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="search.png" type="image/png" />
+    <link rel="apple-touch-icon" href="search.png" />
     <title>מערכת ניהול מקומות</title>
     <style>
       :root {
@@ -622,18 +624,15 @@
 
       // ניקוי הזיכרון המקומי
       function clearLocalStorage() {
-        if (
-          confirm(
-            "האם אתה בטוח שברצונך למחוק את כל המקומות מהזיכרון המקומי? פעולה זו לא ניתנת לביטול!"
-          )
-        ) {
-          localStorage.removeItem("savedPlaces");
-          places = [];
-          nextId = Date.now();
-          updateJSONPreview();
-          showStatus("כל המקומות נמחקו מהזיכרון המקומי");
-        }
-      }
+  if (confirm("האם אתה בטוח שברצונך למחוק את כל המקומות מהזיכרון המקומי? פעולה זו לא ניתנת לביטול!")) {
+    localStorage.removeItem("savedPlaces");
+    places = [];
+    nextId = Date.now();
+    updateJSONPreview();
+    showStatus("כל המקומות נמחקו מהזיכרון המקומי");
+    location.reload(); // הוספת רענון הדף
+  }
+}
 
       // פונקציות עיקריות
       async function searchPlace() {
