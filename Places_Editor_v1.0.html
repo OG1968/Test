@@ -5,86 +5,192 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>מערכת ניהול מקומות</title>
     <style>
+      :root {
+        --primary-color: #4361ee;
+        --primary-hover: #3a56d4;
+        --secondary-color: #3f37c9;
+        --success-color: #0074c7;
+        --success-hover: #007fa5;
+        --danger-color: #ff0000;
+        --danger-hover: #ff5757;
+        --warning-color: #ff8c00;
+        --warning-hover: #ffab44;
+        --info-color: #2e6500;
+        --dark-color: #1a1a2e;
+        --light-color: #f8f9fa;
+        --gray-color: #6c757d;
+        --border-color: #dee2e6;
+        --shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        --shadow-hover: 0 4px 6px rgba(0, 0, 0, 0.15);
+        --radius: 6px;
+        --transition: all 0.2s ease;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
       body {
-        font-family: Arial, sans-serif;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
         direction: rtl;
         padding: 20px;
+        width: 100%;
         max-width: 800px;
         margin: 0 auto;
-        line-height: 1.6;
+        line-height: 1.5;
+        color: #333;
+        background-color: #deebff;
       }
+
       h1,
       h2 {
-        color: #2c3e50;
+        color: var(--dark-color);
       }
+
+      h1 {
+        font-size: 1.8rem;
+        margin-bottom: 0.5rem;
+        text-align: center;
+        color: var(--primary-color);
+        border-bottom: 2px solid var(--primary-color);
+        padding-bottom: 8px;
+      }
+
+      h2 {
+        font-size: 1.4rem;
+        margin-bottom: 0.2rem;
+      }
+
       .form-group {
-        margin-bottom: 15px;
+        margin-bottom: 0rem;
       }
+
       label {
         display: block;
-        margin-bottom: 5px;
-        font-weight: bold;
+        margin-bottom: 0rem;
+        font-weight: 600;
+        color: var(--dark-color);
       }
+
       textarea,
       input,
       select {
         width: 100%;
-        padding: 10px;
-        border: 1px solid #ddd;
-        border-radius: 4px;
+        padding: 0.6rem;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius);
         box-sizing: border-box;
-        font-size: 16px;
+        font-size: 0.95rem;
+        transition: var(--transition);
+        background-color: white;
       }
+
+      textarea:focus,
+      input:focus,
+      select:focus {
+        border-color: var(--primary-color);
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(67, 97, 238, 0.2);
+      }
+
       textarea {
-        height: 120px;
+        height: 100px;
         resize: vertical;
       }
+
       button {
-        background-color: #3498db;
+        background-color: var(--primary-color);
         color: white;
-        padding: 10px 15px;
+        padding: 0.6rem 0.2rem;
         border: none;
-        border-radius: 4px;
+        border-radius: var(--radius);
         cursor: pointer;
-        font-size: 16px;
-        margin: 5px 0;
-        transition: background-color 0.3s;
+        font-size: 0.95rem;
+        font-weight: 600;
+        margin: 0.2rem 0;
+        transition: var(--transition);
+        box-shadow: var(--shadow);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.4rem;
       }
+
       button:hover {
-        background-color: #2980b9;
+        background-color: var(--primary-hover);
+        box-shadow: var(--shadow-hover);
       }
+
+      button:active {
+        transform: translateY(1px);
+      }
+
+      button:disabled {
+        background-color: var(--gray-color);
+        cursor: not-allowed;
+        box-shadow: none;
+      }
+
       #search-btn {
-        background-color: #2ecc71;
+        background-color: var(--success-color);
       }
+
       #search-btn:hover {
-        background-color: #27ae60;
+        background-color: var(--success-hover);
       }
+
       #download-btn {
-        background-color: #9b59b6;
+        background-color: var(--info-color);
+        width: 50%;
+        margin-top: 0.2rem;
       }
+
       #download-btn:hover {
-        background-color: #8e44ad;
+        background-color: #19a400;
       }
+
+      #upload-btn {
+        background-color: var(--warning-color);
+        width: 50%;
+        margin-top: 0.2rem;
+      }
+
+      @media (max-width: 600px) {
+        #download-btn,
+        #upload-btn {
+          width: 50%;
+        }
+      }
+
+      #upload-btn:hover {
+        background-color: var(--warning-hover);
+      }
+
       button.delete {
-        background-color: #e74c3c;
+        background-color: var(--danger-color);
       }
+
       button.delete:hover {
-        background-color: #c0392b;
+        background-color: var(--danger-hover);
       }
+
       #loading {
         display: none;
-        margin-left: 10px;
+        margin-right: 0.4rem;
       }
+
       .spinner {
-        border: 3px solid rgba(0, 0, 0, 0.1);
-        border-top: 3px solid #3498db;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top: 2px solid white;
         border-radius: 50%;
-        width: 20px;
-        height: 20px;
+        width: 16px;
+        height: 16px;
         animation: spin 1s linear infinite;
         display: inline-block;
-        vertical-align: middle;
       }
+
       @keyframes spin {
         0% {
           transform: rotate(0deg);
@@ -93,133 +199,231 @@
           transform: rotate(360deg);
         }
       }
+
       .place-item {
-        background-color: #f9f9f9;
-        padding: 15px;
-        margin-bottom: 15px;
-        border-radius: 5px;
-        border-left: 4px solid #3498db;
+        background-color: white;
+        padding: 1rem;
+        margin-bottom: 0.8rem;
+        border-radius: var(--radius);
+        border-left: 3px solid var(--primary-color);
+        box-shadow: var(--shadow);
       }
+
       #json-output {
-        background-color: #f5f5f5;
-        padding: 15px;
-        border-radius: 5px;
+        background-color: white;
+        padding: 0.8rem;
+        border-radius: var(--radius);
         white-space: pre-wrap;
-        font-family: monospace;
+        font-family: "Courier New", Courier, monospace;
+        font-size: 0.85rem;
         overflow-x: auto;
+        border: 1px solid var(--border-color);
+        box-shadow: var(--shadow);
+        max-height: 250px;
+        overflow-y: auto;
       }
+
       .status-message {
-        padding: 10px;
-        margin: 10px 0;
-        border-radius: 4px;
+        padding: 0.6rem 0.8rem;
+        margin: 0.8rem 0;
+        border-radius: var(--radius);
         display: none;
+        font-weight: 1000;
+        box-shadow: var(--shadow);
       }
+
       .error {
-        background-color: #ffdddd;
-        color: #e74c3c;
-        border-left: 4px solid #e74c3c;
+        background-color: #ffebee;
+        color: var(--danger-color);
+        border-left: 3px solid var(--danger-color);
       }
+
       .success {
-        background-color: #ddffdd;
-        color: #27ae60;
-        border-left: 4px solid #27ae60;
+        background-color: #e8f5e9;
+        color: #2e7d32;
+        border-left: 3px solid #2e7d32;
       }
+
       .search-result {
-        margin-bottom: 15px;
-        padding: 10px;
-        background-color: #eaf7ff;
-        border-radius: 4px;
+        margin-bottom: 0.8rem;
+        padding: 0.8rem;
+        background-color: white;
+        border-radius: var(--radius);
         position: relative;
+        box-shadow: var(--shadow);
+        border-left: 3px solid var(--info-color);
       }
+
+      .search-result.error-result {
+        border-left-color: var(--danger-color);
+      }
+
+      .search-result.not-found {
+        border-left-color: var(--warning-color);
+      }
+
       .button-group {
         display: flex;
-        gap: 10px;
-        margin-bottom: 15px;
+        gap: 0.6rem;
+        margin-bottom: 0.2rem;
+        width: 100%;
       }
+
       .button-group button {
         flex: 1;
+        min-width: 0; /* כדי למנוע בעיות עם טקסט ארוך */
       }
+
       .search-buttons {
         display: flex;
-        gap: 5px;
-        margin-top: 10px;
+        gap: 0.4rem;
+        margin-top: 0.6rem;
       }
+
       .search-buttons button {
         flex: 1;
       }
+
       .editable-field {
-        padding: 5px;
-        margin: 5px 0;
-        border: 1px solid #ddd;
+        padding: 0.4rem;
+        margin: 0.4rem 0;
+        border: 1px solid var(--border-color);
         border-radius: 4px;
         background-color: white;
         cursor: pointer;
         min-height: 20px;
+        transition: var(--transition);
+        font-size: 0.9rem;
+        line-height: 3;
       }
+
       .editable-field:hover {
-        background-color: #f0f0f0;
+        background-color: #f0f4f8;
+        border-color: var(--primary-color);
       }
+
       .edit-container {
         position: relative;
-        margin: 5px 0;
+        margin: 0.4rem 0;
       }
+
       .edit-input {
         width: 100%;
-        padding: 8px;
-        border: 2px solid #3498db;
-        border-radius: 4px;
+        padding: 0.6rem;
+        border: 2px solid var(--primary-color);
+        border-radius: var(--radius);
         box-sizing: border-box;
-        font-size: 16px;
+        font-size: 0.95rem;
+        margin-bottom: 0.4rem;
       }
+
       .edit-textarea {
         width: 100%;
-        padding: 8px;
-        border: 2px solid #3498db;
-        border-radius: 4px;
+        padding: 0.6rem;
+        border: 2px solid var(--primary-color);
+        border-radius: var(--radius);
         box-sizing: border-box;
-        font-size: 16px;
+        font-size: 0.95rem;
         min-height: 80px;
         resize: vertical;
+        margin-bottom: 0.4rem;
       }
+
       .edit-select {
         width: 100%;
-        padding: 8px;
-        border: 2px solid #3498db;
-        border-radius: 4px;
+        padding: 0.6rem;
+        border: 2px solid var(--primary-color);
+        border-radius: var(--radius);
         box-sizing: border-box;
-        font-size: 16px;
+        font-size: 0.95rem;
         background-color: white;
+        margin-bottom: 0.4rem;
       }
+
       .save-cancel-buttons {
         display: flex;
-        gap: 5px;
-        margin-top: 5px;
+        gap: 0.4rem;
+        margin-top: 0.4rem;
       }
+
       .save-cancel-buttons button {
-        padding: 8px 12px;
-        font-size: 14px;
+        padding: 0.5rem 0.6rem;
+        font-size: 0.85rem;
+        flex: 1;
       }
+
       .save-btn {
-        background-color: #2ecc71;
+        background-color: #2e7d32;
       }
+
+      .save-btn:hover {
+        background-color: #1b5e20;
+      }
+
       .cancel-btn {
-        background-color: #e74c3c;
+        background-color: var(--danger-color);
       }
+
+      .cancel-btn:hover {
+        background-color: var(--danger-hover);
+      }
+
       .update-options {
         display: flex;
-        gap: 5px;
-        margin-top: 10px;
+        gap: 0.4rem;
+        margin-top: 0.6rem;
       }
+
       .update-options button {
         flex: 1;
-        padding: 8px;
-        font-size: 14px;
+        padding: 0.6rem;
+        font-size: 0.85rem;
       }
+
       .update-btn {
-        background-color: #f39c12;
+        background-color: var(--warning-color);
       }
+
       .update-btn:hover {
-        background-color: #e67e22;
+        background-color: var(--warning-hover);
+      }
+
+      @media (max-width: 600px) {
+        body {
+          padding: 15px;
+        }
+        h1 {
+          font-size: 1.6rem;
+        }
+        h2 {
+          font-size: 1.2rem;
+        }
+
+        .search-buttons,
+        .update-options,
+        .save-cancel-buttons {
+          flex-direction: column;
+        }
+
+        .button-group {
+          flex-direction: row;
+          gap: 0.6rem;
+        }
+
+        button {
+          width: 100%;
+        }
+
+        #json-output {
+          font-size: 0.8rem;
+          max-height: 200px;
+        }
+      }
+
+      .download-upload-group {
+        display: flex;
+        gap: 0.6rem;
+        margin-top: 0.8rem;
       }
     </style>
   </head>
@@ -228,11 +432,11 @@
 
     <div class="place-form">
       <div class="form-group">
-        <label for="name">שמות מקומות (שורות נפרדות)</label>
+        <label for="name">הזן שמות מקומות (שורות נפרדות)</label>
         <textarea
           id="name"
           required
-          placeholder="הזן שם מקום אחד או יותר, כל אחד בשורה נפרדת"
+          placeholder="הזן שם מקום אחד או יותר, כל מקום בשורה נפרדת"
         ></textarea>
       </div>
 
@@ -280,7 +484,11 @@
       <pre id="json-output" dir="ltr">[]</pre>
     </div>
 
-    <button id="download-btn">הורד קובץ JSON</button>
+    <div class="download-upload-group">
+      <button id="download-btn">הורד קובץ JSON</button>
+      <button id="upload-btn">העלה קובץ JSON</button>
+    </div>
+    <input type="file" id="file-input" accept=".json" style="display: none" />
 
     <script>
       // משתנים גלובליים
@@ -307,9 +515,50 @@
       document
         .getElementById("clear-btn")
         .addEventListener("click", clearLocalStorage);
+      document
+        .getElementById("upload-btn")
+        .addEventListener("click", function () {
+          document.getElementById("file-input").click();
+        });
 
       // טעינת נתונים מהזיכרון המקומי בעת טעינת הדף
       window.addEventListener("DOMContentLoaded", loadFromLocalStorage);
+
+      // טיפול בהעלאת קובץ
+      document
+        .getElementById("file-input")
+        .addEventListener("change", function (e) {
+          const file = e.target.files[0];
+          if (!file) return;
+
+          const reader = new FileReader();
+          reader.onload = function (e) {
+            try {
+              const uploadedPlaces = JSON.parse(e.target.result);
+              if (!Array.isArray(uploadedPlaces)) {
+                throw new Error("הקובץ אינו מכיל מערך של מקומות");
+              }
+
+              if (
+                confirm(
+                  `האם אתה בטוח שברצונך להחליף את ${places.length} המקומות הקיימים ב-${uploadedPlaces.length} מקומות מהקובץ?`
+                )
+              ) {
+                places = uploadedPlaces;
+                if (places.length > 0) {
+                  nextId = Math.max(...places.map((p) => p.id)) + 1;
+                }
+                saveToLocalStorage();
+                updateJSONPreview();
+                showStatus(`נטענו ${places.length} מקומות מהקובץ בהצלחה`);
+              }
+            } catch (error) {
+              console.error("שגיאה בטעינת הקובץ:", error);
+              showStatus(`שגיאה בטעינת הקובץ: ${error.message}`, true);
+            }
+          };
+          reader.readAsText(file);
+        });
 
       // פונקציות עזר
       function showStatus(message, isError = false) {
@@ -341,7 +590,7 @@
       }
 
       // מציאת רשומה קיימת לפי שם וכתובת
-      function findExistingPlace(placeToFind) {
+      function findExistingPlace(placeToFind, checkCategory = false) {
         return places.find((existingPlace) => {
           const nameMatch =
             existingPlace.name.toLowerCase() === placeToFind.name.toLowerCase();
@@ -521,6 +770,8 @@
         lastSearchResults.forEach((place, index) => {
           const div = document.createElement("div");
           div.className = "search-result";
+          if (place.error) div.className += " error-result";
+          if (place.notFound) div.className += " not-found";
           div.dataset.index = index;
 
           if (place.error) {
@@ -528,7 +779,9 @@
               <div class="editable-field" data-field="name">${
                 place.originalName
               }</div>
-              <p style="color: #e74c3c;">שגיאה בחיפוש: ${place.details}</p>
+              <p style="color: var(--danger-color);">שגיאה בחיפוש: ${
+                place.details
+              }</p>
               <div class="search-buttons">
                 <button onclick="addManualPlace('${place.originalName.replace(
                   /'/g,
@@ -593,6 +846,17 @@
         document.querySelectorAll(".editable-field").forEach((field) => {
           field.addEventListener("click", function (e) {
             e.stopPropagation();
+
+            if (currentEditField && currentEditField !== this) {
+              const inputElement = currentEditField.querySelector(
+                ".edit-input, .edit-textarea, .edit-select"
+              );
+              if (inputElement) {
+                const fieldName = currentEditField.dataset.field;
+                saveEdit(currentEditField, inputElement, fieldName);
+              }
+            }
+
             startEditField(this);
           });
         });
@@ -601,8 +865,18 @@
       }
 
       function startEditField(fieldElement) {
+        if (fieldElement === currentEditField) {
+          return;
+        }
+
         if (currentEditField) {
-          cancelEdit(currentEditField);
+          const inputElement = currentEditField.querySelector(
+            ".edit-input, .edit-textarea, .edit-select"
+          );
+          if (inputElement) {
+            const fieldName = currentEditField.dataset.field;
+            saveEdit(currentEditField, inputElement, fieldName);
+          }
         }
 
         currentEditField = fieldElement;
@@ -695,7 +969,12 @@
 
         outsideClickHandler = function (e) {
           if (!fieldElement.contains(e.target)) {
-            cancelEdit(fieldElement);
+            const inputElement = fieldElement.querySelector(
+              ".edit-input, .edit-textarea, .edit-select"
+            );
+            if (inputElement) {
+              saveEdit(fieldElement, inputElement, fieldElement.dataset.field);
+            }
           }
         };
 
@@ -730,9 +1009,13 @@
         if (fieldName === "name") {
           if (place.originalName) {
             place.originalName = newValue;
+          }
+          if (place.display_name) {
+            const parts = place.display_name.split(",");
+            parts[0] = newValue;
+            place.display_name = parts.join(",");
           } else {
-            place.display_name =
-              newValue + "," + place.display_name.split(",").slice(1).join(",");
+            place.display_name = newValue + ", " + (place.address || "");
           }
         } else if (fieldName === "address") {
           place.display_name = newValue;
@@ -810,7 +1093,7 @@
         const updatedPlace = {
           id: nextId++,
           category: place.category,
-          name: place.display_name.split(",")[0] || place.originalName,
+          name: place.display_name?.split(",")[0] || place.originalName,
           address: cleanAddress(place),
           lat: parseFloat(place.lat),
           lng: parseFloat(place.lon),
@@ -824,18 +1107,15 @@
         );
 
         if (existingPlaceIndex !== -1) {
-          // עדכון הרשומה הקיימת
-          places[existingPlaceIndex] = updatedPlace;
+          updatedPlace.id = places[existingPlaceIndex].id;
+          Object.assign(places[existingPlaceIndex], updatedPlace);
           searchStatus.updated++;
           showStatus(
-            `"${updatedPlace.name}" עודכן בהצלחה (נמצאו: ${searchStatus.found}, לא נמצאו: ${searchStatus.notFound}, שגיאות: ${searchStatus.errors}, עדכונים: ${searchStatus.updated})`
+            `"${updatedPlace.name}" עודכן בהצלחה (קטגוריה: ${updatedPlace.category})`
           );
         } else {
-          // אם לא נמצאה רשומה קיימת - מוסיפים חדשה
           places.push(updatedPlace);
-          showStatus(
-            `"${updatedPlace.name}" נוסף לרשימה בהצלחה (נמצאו: ${searchStatus.found}, לא נמצאו: ${searchStatus.notFound}, שגיאות: ${searchStatus.errors})`
-          );
+          showStatus(`"${updatedPlace.name}" נוסף לרשימה בהצלחה`);
         }
 
         saveToLocalStorage();
@@ -861,28 +1141,22 @@
         if (existingPlace) {
           if (
             confirm(
-              `"${name}" כבר קיים ברשימה. האם ברצונך לעדכן את הרשומה הקיימת?`
+              `"${name}" כבר קיים ברשימה. האם ברצונך לעדכן את הרשומה הקיימת? (הקטגוריה תתעדכן מ-${existingPlace.category} ל-${newPlace.category})`
             )
           ) {
-            // עדכון הרשומה הקיימת
             Object.assign(existingPlace, newPlace);
             searchStatus.updated++;
             showStatus(
-              `"${name}" עודכן בהצלחה (נמצאו: ${searchStatus.found}, לא נמצאו: ${searchStatus.notFound}, שגיאות: ${searchStatus.errors}, עדכונים: ${searchStatus.updated})`
+              `"${name}" עודכן בהצלחה (קטגוריה: ${newPlace.category})`
             );
           } else {
             searchStatus.duplicates++;
-            showStatus(
-              `"${name}" כבר קיים ברשימה ולא עודכן (נמצאו: ${searchStatus.found}, לא נמצאו: ${searchStatus.notFound}, שגיאות: ${searchStatus.errors}, כפילויות: ${searchStatus.duplicates})`,
-              true
-            );
+            showStatus(`"${name}" כבר קיים ברשימה ולא עודכן`, true);
             return;
           }
         } else {
           places.push(newPlace);
-          showStatus(
-            `"${name}" נוסף ידנית לרשימה (נמצאו: ${searchStatus.found}, לא נמצאו: ${searchStatus.notFound}, שגיאות: ${searchStatus.errors})`
-          );
+          showStatus(`"${name}" נוסף ידנית לרשימה`);
         }
 
         saveToLocalStorage();
