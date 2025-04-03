@@ -507,18 +507,6 @@
         border-radius: 4px;
         min-height: 40px;
       }
-
-      .description-text {
-    white-space: pre-line;
-    margin-top: 5px;
-    padding: 8px;
-    background: #f5f5f5;
-    border-radius: 4px;
-    max-height: 200px;
-    overflow-y: auto;
-    line-height: 1.5;
-    font-size: 0.9rem;
-}
     </style>
   </head>
   <body>
@@ -660,9 +648,9 @@
       function showStatus(message, isError = false) {
         const statusDiv = document.getElementById("status-message");
         statusDiv.innerHTML = `
-                ${isError ? "❌" : "✅"} ${message}
-                <button class="close-status" onclick="this.parentElement.style.display='none'">&times;</button>
-            `;
+              ${isError ? "❌" : "✅"} ${message}
+              <button class="close-status" onclick="this.parentElement.style.display='none'">&times;</button>
+          `;
         statusDiv.className = isError
           ? "status-message error"
           : "status-message success";
@@ -847,162 +835,272 @@
           query
         )}&format=json&addressdetails=1&limit=1&accept-language=en&extratags=1`;
 
-        const nominatimResponse = await fetch(nominatimUrl, {
-          headers: {
-            "User-Agent": "PlaceManagementApp/1.0",
-            "Accept-Language": "en",
-          },
-        });
-
-        if (!nominatimResponse.ok) {
-          throw new Error(`שגיאת HTTP: ${nominatimResponse.status}`);
-        }
-
-        const nominatimResult = await nominatimResponse.json();
-        if (nominatimResult && nominatimResult.length > 0) {
-          const foundPlace = nominatimResult[0];
-          let description = "אין תיאור זמין";
-
-          try {
-            description = await getPlaceDescription(foundPlace);
-          } catch (e) {
-            console.error("שגיאה בקבלת תיאור:", e);
-            description = foundPlace.type
-              ? `אתר מסוג ${foundPlace.type}`
-              : "אין תיאור זמין";
-          }
-
-          if (description.length > 500) {
-            description = description.substring(0, 497) + "...";
-          }
-
-          lastSearchResults.push({
-            ...foundPlace,
-            originalName: name,
-            category: category,
-            details: description,
+        try {
+          const nominatimResponse = await fetch(nominatimUrl, {
+            headers: {
+              "User-Agent": "PlaceManagementApp/1.0",
+              "Accept-Language": "en",
+            },
           });
 
-          searchStatus.found++;
-          showStatus(
-            `🔍 מצאתי: ${name} (נמצאו: ${searchStatus.found}, לא נמצאו: ${searchStatus.notFound}, שגיאות: ${searchStatus.errors})`
-          );
-          return true;
+          if (!nominatimResponse.ok) {
+            throw new Error(`שגיאת HTTP: ${nominatimResponse.status}`);
+          }
+
+          const nominatimResult = await nominatimResponse.json();
+          if (nominatimResult && nominatimResult.length > 0) {
+            const foundPlace = nominatimResult[0];
+            let description = await getPlaceDescription(foundPlace);
+
+            if (description.length > 500) {
+              description = description.substring(0, 497) + "...";
+            }
+
+            lastSearchResults.push({
+              ...foundPlace,
+              originalName: name,
+              category: category,
+              details: description,
+            });
+
+            searchStatus.found++;
+            showStatus(
+              `🔍 מצאתי: ${name} (נמצאו: ${searchStatus.found}, לא נמצאו: ${searchStatus.notFound}, שגיאות: ${searchStatus.errors})`
+            );
+            return true;
+          }
+          return false;
+        } catch (error) {
+          console.error("שגיאה בחיפוש:", error);
+          throw error;
         }
-        return false;
       }
 
       async function getPlaceDescription(place) {
-    // קודם נבדוק אם יש קישור ישיר לויקיפדיה
-    if (place.extratags?.wikipedia) {
-        try {
-            const wikiTitle = place.extratags.wikipedia.split(':').pop();
+        // קודם נבדוק אם יש קישור ישיר לויקיפדיה
+        if (place.extratags?.wikipedia) {
+          try {
+            const wikiTitle = place.extratags.wikipedia.split(":").pop();
             const wikiExtract = await getWikipediaExtract(wikiTitle);
             if (wikiExtract && wikiExtract !== "אין תיאור זמין") {
-                return wikiExtract;
+              return wikiExtract;
             }
-        } catch (e) {
+          } catch (e) {
             console.error("שגיאה בקבלת תיאור מ-Wikipedia:", e);
+          }
         }
-    }
 
-    // אם אין ויקיפדיה, נבדוק ב-Wikidata
-    if (place.extratags?.wikidata) {
-        try {
+        // אם אין ויקיפדיה, נבדוק ב-Wikidata
+        if (place.extratags?.wikidata) {
+          try {
             const wikidataId = place.extratags.wikidata;
             const wikiDescription = await getWikidataDescription(wikidataId);
             if (wikiDescription && wikiDescription !== "אין תיאור זמין") {
-                return wikiDescription;
+              return wikiDescription;
             }
-        } catch (e) {
+          } catch (e) {
             console.error("שגיאה בקבלת תיאור מ-Wikidata:", e);
+          }
         }
-    }
 
-    // אם כל השאר נכשל, נשתמש במידע הבסיסי
-    if (place.type) {
-        // נוסיף תיאור בסיסי מותאם לסוג המקום
-        const typeDescriptions = {
-            "attraction": "אתר תיירות פופולרי",
-            "monument": "מונומנט או אנדרטה היסטורית",
-            "museum": "מוזיאון או גלריה",
-            "tower": "מגדל או מבנה גבוה",
-            "bridge": "גשר או מעבר מעל מים",
-            "castle": "טירה או מבצר היסטורי",
-            "park": "פארק או גן ציבורי"
-        };
-        return typeDescriptions[place.type] || `אתר מסוג ${place.type}`;
-    }
+        // אם כל השאר נכשל, נשתמש במידע הבסיסי
+        if (place.type) {
+          const typeDescriptions = {
+            attraction: "אתר תיירות פופולרי",
+            monument: "מונומנט או אנדרטה היסטורית",
+            museum: "מוזיאון או גלריה",
+            tower: "מגדל או מבנה גבוה",
+            bridge: "גשר או מעבר מעל מים",
+            castle: "טירה או מבצר היסטורי",
+            park: "פארק או גן ציבורי",
+          };
+          return typeDescriptions[place.type] || `אתר מסוג ${place.type}`;
+        }
 
-    return "אין תיאור זמין";
-}
+        return "אין תיאור זמין";
+      }
 
-      async function getWikipediaExtract(title) {
-        const url = `https://he.wikipedia.org/w/api.php?action=query&format=json&prop=extracts&exintro=true&explaintext=true&titles=${encodeURIComponent(
-          title
-        )}&origin=*`;
+      async function getWikidataDescription(wikidataId) {
+        const url = `https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${wikidataId}&props=descriptions&languages=he&format=json&origin=*`;
 
         const response = await fetch(url);
         if (!response.ok) {
-          throw new Error("שגיאה בקבלת נתונים מ-Wikipedia");
+          throw new Error("שגיאה בקבלת נתונים מ-Wikidata");
         }
 
         const data = await response.json();
-        const pages = data.query.pages;
-        const pageId = Object.keys(pages)[0];
+        const entity = data.entities[wikidataId];
 
-        if (pageId === "-1" || !pages[pageId].extract) {
-          return "אין תיאור זמין";
+        if (entity.descriptions?.he) {
+          return entity.descriptions.he.value;
         }
 
-        return pages[pageId].extract;
+        return "אין תיאור זמין";
       }
 
       async function getWikipediaExtract(title) {
-    // ננסה ראשון לקבל את התיאור בעברית
-    const hebrewUrl = `https://he.wikipedia.org/w/api.php?action=query&format=json&prop=extracts&exintro=true&explaintext=true&titles=${encodeURIComponent(title)}&origin=*`;
-    
-    const hebrewResponse = await fetch(hebrewUrl);
-    if (hebrewResponse.ok) {
-        const data = await hebrewResponse.json();
-        const pages = data.query.pages;
-        const pageId = Object.keys(pages)[0];
-        
-        if (pageId !== "-1" && pages[pageId].extract) {
+        // ננסה ראשון לקבל את התיאור בעברית
+        const hebrewUrl = `https://he.wikipedia.org/w/api.php?action=query&format=json&prop=extracts&exintro=true&explaintext=true&titles=${encodeURIComponent(
+          title
+        )}&origin=*`;
+
+        const hebrewResponse = await fetch(hebrewUrl);
+        if (hebrewResponse.ok) {
+          const data = await hebrewResponse.json();
+          const pages = data.query.pages;
+          const pageId = Object.keys(pages)[0];
+
+          if (pageId !== "-1" && pages[pageId].extract) {
             const hebrewExtract = pages[pageId].extract;
-            if (hebrewExtract.length > 100) { // לוודא שיש תוכן משמעותי
-                return hebrewExtract;
+            if (hebrewExtract.length > 100) {
+              return hebrewExtract;
             }
+          }
         }
-    }
 
-    // אם לא מצאנו תיאור מספק בעברית, ננסה באנגלית
-    const englishUrl = `https://en.wikipedia.org/w/api.php?action=query&format=json&prop=extracts&exintro=true&explaintext=true&titles=${encodeURIComponent(title)}&origin=*`;
-    
-    const englishResponse = await fetch(englishUrl);
-    if (!englishResponse.ok) {
-        throw new Error("שגיאה בקבלת נתונים מ-Wikipedia");
-    }
+        // אם לא מצאנו תיאור מספק בעברית, ננסה באנגלית
+        const englishUrl = `https://en.wikipedia.org/w/api.php?action=query&format=json&prop=extracts&exintro=true&explaintext=true&titles=${encodeURIComponent(
+          title
+        )}&origin=*`;
 
-    const englishData = await englishResponse.json();
-    const englishPages = englishData.query.pages;
-    const englishPageId = Object.keys(englishPages)[0];
-    
-    if (englishPageId === "-1" || !englishPages[englishPageId].extract) {
-        return "אין תיאור זמין";
-    }
+        const englishResponse = await fetch(englishUrl);
+        if (!englishResponse.ok) {
+          throw new Error("שגיאה בקבלת נתונים מ-Wikipedia");
+        }
 
-    // תרגום בסיסי של מונחים נפוצים מאנגלית לעברית
-    const translatedExtract = englishPages[englishPageId].extract
-        .replace(/Eiffel Tower/g, "מגדל אייפל")
-        .replace(/Paris/g, "פריז")
-        .replace(/France/g, "צרפת")
-        .replace(/built in/g, "נבנה ב")
-        .replace(/height/g, "גובה")
-        .replace(/meters/g, "מטרים");
+        const englishData = await englishResponse.json();
+        const englishPages = englishData.query.pages;
+        const englishPageId = Object.keys(englishPages)[0];
 
-    return translatedExtract;
-}
+        if (englishPageId === "-1" || !englishPages[englishPageId].extract) {
+          return "אין תיאור זמין";
+        }
+
+        // תרגום בסיסי של מונחים נפוצים מאנגלית לעברית
+        const translatedExtract = englishPages[englishPageId].extract
+          .replace(/Eiffel Tower/g, "מגדל אייפל")
+          .replace(/Paris/g, "פריז")
+          .replace(/France/g, "צרפת")
+          .replace(/built in/g, "נבנה ב")
+          .replace(/height/g, "גובה")
+          .replace(/meters/g, "מטרים");
+
+        return translatedExtract;
+      }
+
+      function displaySearchResults() {
+        const container = document.getElementById("results-container");
+        container.innerHTML = "";
+
+        if (lastSearchResults.length === 0) {
+          container.innerHTML = "<p>לא נמצאו תוצאות</p>";
+          return;
+        }
+
+        lastSearchResults.forEach((place, index) => {
+          const div = document.createElement("div");
+          div.className = "search-result";
+          if (place.error) div.className += " error-result";
+          if (place.notFound) div.className += " not-found";
+          div.dataset.index = index;
+
+          if (place.error) {
+            div.innerHTML = `
+                      <div class="editable-field" data-field="name">${
+                        place.originalName
+                      }</div>
+                      <p style="color: var(--danger-color);">שגיאה בחיפוש: ${
+                        place.details
+                      }</p>
+                      <div class="search-buttons">
+                          <button onclick="addManualPlace('${place.originalName.replace(
+                            /'/g,
+                            "\\'"
+                          )}')">הוסף ידנית</button>
+                          <button onclick="removeSearchResult(${index})" class="delete">מחק</button>
+                      </div>
+                  `;
+          } else if (place.notFound) {
+            div.innerHTML = `
+                      <div class="editable-field" data-field="name">${
+                        place.originalName
+                      }</div>
+                      <p>לא נמצא</p>
+                      <p>
+                          <strong>פרטים נוספים:</strong>
+                          <span class="editable-field" data-field="details" style="white-space: pre-line;">${
+                            place.details
+                          }</span>
+                      </p>
+                      <div class="search-buttons">
+                          <button onclick="addManualPlace('${place.originalName.replace(
+                            /'/g,
+                            "\\'"
+                          )}')">הוסף ידנית</button>
+                          <button onclick="removeSearchResult(${index})" class="delete">מחק</button>
+                      </div>
+                  `;
+          } else {
+            const displayName = place.display_name.split(",")[0];
+            div.innerHTML = `
+                      <div class="editable-field" data-field="name">${displayName}</div>
+                      <p>
+                          <strong>כתובת:</strong>
+                          <span class="editable-field" data-field="address">${cleanAddress(
+                            place
+                          )}</span>
+                      </p>
+                      <p>
+                          <strong>קואורדינטות:</strong>
+                          <span class="editable-field" data-field="lat">${
+                            place.lat
+                          }</span>, 
+                          <span class="editable-field" data-field="lng">${
+                            place.lon
+                          }</span>
+                      </p>
+                      <p>
+                          <strong>קטגוריה:</strong>
+                          <span class="editable-field" data-field="category">${
+                            document.getElementById("category").options[
+                              document.getElementById("category").selectedIndex
+                            ].text
+                          }</span>
+                      </p>
+                      <div class="description">
+                          <strong>תיאור המקום:</strong>
+                          <div class="description-text">${
+                            place.details || "אין תיאור זמין"
+                          }</div>
+                      </div>
+                      <div class="update-options">
+                          <button onclick="addSelectedPlace(${index})">הוסף כחדש</button>
+                          <button onclick="updateExistingPlace(${index})" class="update-btn">עדכן קיים</button>
+                          <button onclick="removeSearchResult(${index})" class="delete">מחק</button>
+                      </div>
+                  `;
+          }
+          container.appendChild(div);
+        });
+
+        document.querySelectorAll(".editable-field").forEach((field) => {
+          field.addEventListener("click", function (e) {
+            e.stopPropagation();
+            if (currentEditField && currentEditField !== this) {
+              const inputElement = currentEditField.querySelector(
+                ".edit-input, .edit-textarea, .edit-select"
+              );
+              if (inputElement) {
+                const fieldName = currentEditField.dataset.field;
+                saveEdit(currentEditField, inputElement, fieldName);
+              }
+            }
+            startEditField(this);
+          });
+        });
+
+        document.getElementById("search-results").style.display = "block";
+      }
 
       function startEditField(fieldElement) {
         if (fieldElement === currentEditField) {
@@ -1359,30 +1457,29 @@
           div.dataset.id = place.id;
 
           div.innerHTML = `
-                    <div class="place-actions">
-                        <button onclick="editExistingPlace(${
-                          place.id
-                        })" class="update-btn">ערוך</button>
-                        <button onclick="deleteExistingPlace(${
-                          place.id
-                        })" class="delete">מחק</button>
-                    </div>
-                    <h3>${place.name}</h3>
-                    <p><strong>כתובת:</strong> ${place.address}</p>
-                    <p><strong>קואורדינטות:</strong> ${place.lat}, ${
+                  <div class="place-actions">
+                      <button onclick="editExistingPlace(${
+                        place.id
+                      })" class="update-btn">ערוך</button>
+                      <button onclick="deleteExistingPlace(${
+                        place.id
+                      })" class="delete">מחק</button>
+                  </div>
+                  <h3>${place.name}</h3>
+                  <p><strong>כתובת:</strong> ${place.address}</p>
+                  <p><strong>קואורדינטות:</strong> ${place.lat}, ${
             place.lng
           }</p>
-                    <p><strong>קטגוריה:</strong> ${getCategoryName(
-                      place.category
-                    )}</p>
-    <div class="description">
-        <strong>תיאור המקום:</strong>
-        <div class="description-text" style="white-space: pre-line; margin-top: 5px; padding: 8px; 
-              background: #f5f5f5; border-radius: 4px; max-height: 200px; overflow-y: auto;">
-            ${place.details || "אין תיאור זמין"}
-        </div>
-    </div>
-                `;
+                  <p><strong>קטגוריה:</strong> ${getCategoryName(
+                    place.category
+                  )}</p>
+                  <div class="description">
+                      <strong>תיאור:</strong>
+                      <div class="description-text">${
+                        place.details || "אין תיאור זמין"
+                      }</div>
+                  </div>
+              `;
 
           container.appendChild(div);
         });
