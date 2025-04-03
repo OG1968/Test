@@ -102,11 +102,6 @@
         resize: vertical;
       }
 
-      textarea {
-        height: 100px;
-        resize: vertical;
-      }
-
       textarea#name {
         font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
         font-size: 0.95rem;
@@ -207,7 +202,6 @@
         0% {
           transform: rotate(0deg);
         }
-
         100% {
           transform: rotate(360deg);
         }
@@ -444,11 +438,11 @@
 
       .status-message {
         position: relative;
-        padding-right: 30px; 
+        padding-right: 30px;
       }
 
       .close-status {
-        position:absolute;
+        position: absolute;
         right: 1px;
         top: 40%;
         transform: translateY(-50%);
@@ -459,7 +453,6 @@
         color: inherit;
       }
 
-      /* New styles for existing places section */
       .existing-places-header {
         display: flex;
         justify-content: space-between;
@@ -501,6 +494,25 @@
       .icon {
         margin-left: 0.3rem;
       }
+
+      .description {
+        margin-top: 0.5rem;
+      }
+
+      .description-text {
+        white-space: pre-line;
+        margin-top: 5px;
+        padding: 8px;
+        background: white;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        min-height: 40px;
+        cursor: text;
+      }
+
+      .description-text:hover {
+        border-color: var(--primary-color);
+      }
     </style>
   </head>
   <body>
@@ -508,9 +520,13 @@
     <div class="place-form">
       <div class="form-group">
         <label for="name">הזן שמות מקומות (שורות נפרדות)</label>
-        <textarea id="name" required placeholder="הזן שם מקום אחד או יותר באופן הבא:
+        <textarea
+          id="name"
+          required
+          placeholder="הזן שם מקום אחד או יותר באופן הבא:
 מגדל אייפל
-שער הניצחון"></textarea>
+שער הניצחון"
+        ></textarea>
         <div class="form-group">
           <label for="city">עיר</label>
           <input type="text" id="city" placeholder="לדוגמה: פריז (En/Heb)" />
@@ -534,8 +550,9 @@
         </div>
         <div class="button-group">
           <button id="search-btn">
-            <span id="loading">
-              <span class="spinner"></span> מחפש... </span> חפש מקומות </button>
+            <span id="loading"> <span class="spinner"></span> מחפש... </span>
+            חפש מקומות
+          </button>
           <button id="clear-btn" class="delete">נקה זיכרון</button>
         </div>
         <div id="status-message" class="status-message"></div>
@@ -545,7 +562,6 @@
         <div id="results-container"></div>
       </div>
 
-      <!-- New section for existing places with filtering -->
       <div id="existing-places-section">
         <div class="existing-places-header">
           <h2>מקומות קיימים</h2>
@@ -576,14 +592,141 @@
         <button id="upload-btn">העלה קובץ JSON</button>
       </div>
       <input type="file" id="file-input" accept=".json" style="display: none" />
-      <script>
-        // משתנים גלובליים
-        let places = [];
-        let nextId = Date.now();
-        let lastSearchResults = [];
-        let currentEditField = null;
-        let outsideClickHandler = null;
-        let searchStatus = {
+    </div>
+
+    <script>
+      // משתנים גלובליים
+      let places = [];
+      let nextId = Date.now();
+      let lastSearchResults = [];
+      let currentEditField = null;
+      let outsideClickHandler = null;
+      let searchStatus = {
+        found: 0,
+        notFound: 0,
+        duplicates: 0,
+        errors: 0,
+        updated: 0,
+      };
+
+      // מילון תרגום מורחב
+      const hebrewToEnglish = {
+        "מגדל אייפל": "Eiffel Tower",
+        פריז: "Paris",
+        צרפת: "France",
+        ירושלים: "Jerusalem",
+        "תל אביב": "Tel Aviv",
+        ישראל: "Israel",
+        "שער הניצחון": "Arc de Triomphe",
+        "קטדרלת נוטרדאם": "Notre Dame Cathedral",
+        "מוזיאון הלובר": "Louvre Museum",
+        "טירת וינדזור": "Windsor Castle",
+        "כיכר טרפלגר": "Trafalgar Square",
+      };
+
+      // אירועים
+      document
+        .getElementById("search-btn")
+        .addEventListener("click", searchPlace);
+      document
+        .getElementById("download-btn")
+        .addEventListener("click", downloadJSON);
+      document
+        .getElementById("clear-btn")
+        .addEventListener("click", clearLocalStorage);
+      document
+        .getElementById("upload-btn")
+        .addEventListener("click", function () {
+          document.getElementById("file-input").click();
+        });
+      document
+        .getElementById("places-search")
+        .addEventListener("input", filterPlaces);
+      document
+        .getElementById("places-category-filter")
+        .addEventListener("change", filterPlaces);
+      window.addEventListener("DOMContentLoaded", loadFromLocalStorage);
+      document
+        .getElementById("file-input")
+        .addEventListener("change", handleFileUpload);
+
+      // פונקציות עזר
+      function showStatus(message, isError = false) {
+        const statusDiv = document.getElementById("status-message");
+        statusDiv.innerHTML = `
+              ${isError ? "❌" : "✅"} ${message}
+              <button class="close-status" onclick="this.parentElement.style.display='none'">&times;</button>
+          `;
+        statusDiv.className = isError
+          ? "status-message error"
+          : "status-message success";
+        statusDiv.style.display = "block";
+
+        if (!isError) {
+          setTimeout(() => {
+            statusDiv.style.display = "none";
+          }, 5000);
+        }
+      }
+
+      function cleanAddress(place) {
+        if (place.address) {
+          const addr = place.address;
+          const street = [addr.road, addr.house_number]
+            .filter(Boolean)
+            .join(" ");
+          const city = addr.city || addr.town || addr.village || "";
+          const postcode = addr.postcode || "";
+          const country = addr.country || "";
+          return [street, postcode, city, country].filter(Boolean).join(", ");
+        }
+        return place.display_name || "כתובת לא ידועה";
+      }
+
+      function findExistingPlace(placeToFind) {
+        return places.find((existingPlace) => {
+          const nameMatch =
+            existingPlace.name.toLowerCase() === placeToFind.name.toLowerCase();
+          const addressMatch =
+            existingPlace.address.toLowerCase() ===
+            placeToFind.address.toLowerCase();
+          return nameMatch && addressMatch;
+        });
+      }
+
+      function getCategoryName(categoryValue) {
+        const categoryMap = {
+          lodging: "שמורים",
+          attraction: "אתר תירותי",
+          restaurant: "מסעדה",
+          cafe: "בית קפה",
+          pub: "פאב",
+          shopping: "שופינג",
+          other: "אחר",
+        };
+        return categoryMap[categoryValue] || categoryValue;
+      }
+
+      // פונקציות עיקריות
+      async function searchPlace() {
+        const nameInput = document.getElementById("name").value;
+        const city = document.getElementById("city").value.trim();
+        const country = document.getElementById("country").value.trim();
+        const category = document.getElementById("category").value;
+
+        const placeNames = nameInput
+          .split("\n")
+          .map((line) => line.trim())
+          .filter(
+            (line) => line && !line.startsWith("//") && !line.startsWith("#")
+          );
+
+        if (placeNames.length === 0) {
+          showStatus("❌ אנא הזן לפחות שם מקום אחד", true);
+          return;
+        }
+
+        searchStatus = {
           found: 0,
           notFound: 0,
           duplicates: 0,
@@ -591,812 +734,952 @@
           updated: 0,
         };
 
-        // אירועים
-        document.getElementById("search-btn").addEventListener("click", searchPlace);
-        document.getElementById("download-btn").addEventListener("click", downloadJSON);
-        document.getElementById("clear-btn").addEventListener("click", clearLocalStorage);
-        document.getElementById("upload-btn").addEventListener("click", function() {
-          document.getElementById("file-input").click();
-        });
-        
-        // אירועי חיפוש וסינון
-        document.getElementById("places-search").addEventListener("input", filterPlaces);
-        document.getElementById("places-category-filter").addEventListener("change", filterPlaces);
+        document.getElementById("loading").style.display = "inline";
+        document.getElementById("search-btn").disabled = true;
+        document.getElementById("results-container").innerHTML = "";
+        showStatus(`🔍 מתחיל לחפש ${placeNames.length} מקומות...`);
 
-        // טעינת נתונים מהזיכרון המקומי בעת טעינת הדף
-        window.addEventListener("DOMContentLoaded", loadFromLocalStorage);
-        
-        // טיפול בהעלאת קובץ
-        document.getElementById("file-input").addEventListener("change", function(e) {
-          const file = e.target.files[0];
-          if (!file) return;
-          const reader = new FileReader();
-          reader.onload = function(e) {
+        try {
+          lastSearchResults = [];
+          for (const name of placeNames) {
             try {
-              const uploadedPlaces = JSON.parse(e.target.result);
-              if (!Array.isArray(uploadedPlaces)) {
-                throw new Error("הקובץ אינו מכיל מערך של מקומות");
+              let query = name;
+              let translatedName = hebrewToEnglish[name];
+
+              let found = await trySearch(name, city, country, category);
+
+              if (!found && translatedName) {
+                showStatus(
+                  `🔠 מנסה חיפוש עם תרגום: ${name} -> ${translatedName}`
+                );
+                found = await trySearch(
+                  translatedName,
+                  city,
+                  country,
+                  category
+                );
+                if (found) {
+                  found.originalName = name;
+                }
               }
-              if (confirm(`האם אתה בטוח שברצונך להחליף את ${places.length} המקומות הקיימים ב-${uploadedPlaces.length} מקומות מהקובץ?`)) {
-                places = uploadedPlaces;
-                if (places.length > 0) {
-                  nextId = Math.max(...places.map((p) => p.id)) + 1;
-                }
-                saveToLocalStorage();
-                updateJSONPreview();
-                displayExistingPlaces();
-                showStatus(`✅ נטענו ${places.length} מקומות מהקובץ בהצלחה`, false);
-              }
-            } catch (error) {
-              console.error("שגיאה בטעינת הקובץ:", error);
-              showStatus(`❌ שגיאה בטעינת הקובץ: ${error.message}`, true);
-            }
-          };
-          reader.readAsText(file);
-        });
 
-        // פונקציות עזר
-        function showStatus(message, isError = false) {
-          const statusDiv = document.getElementById("status-message");
-          statusDiv.innerHTML = `
-            ${isError ? '❌' : '✅'} ${message}
-            <button class="close-status" onclick="this.parentElement.style.display='none'">&times;</button>
-          `;
-          statusDiv.className = isError ? "status-message error" : "status-message success";
-          statusDiv.style.display = "block";
-          
-          // Hide message after 5 seconds if not error
-          if (!isError) {
-            setTimeout(() => {
-              statusDiv.style.display = "none";
-            }, 5000);
-          }
-        }
-
-        function cleanAddress(place) {
-          if (place.address) {
-            const addr = place.address;
-            const street = [addr.road, addr.house_number].filter(Boolean).join(" ");
-            const city = addr.city || addr.town || addr.village || "";
-            const postcode = addr.postcode || "";
-            const country = addr.country || "";
-            return [street, postcode, city, country].filter(Boolean).join(", ");
-          }
-          return place.display_name || "Address unknown";
-        }
-
-        // מציאת רשומה קיימת לפי שם וכתובת
-        function findExistingPlace(placeToFind, checkCategory = false) {
-          return places.find((existingPlace) => {
-            const nameMatch = existingPlace.name.toLowerCase() === placeToFind.name.toLowerCase();
-            const addressMatch = existingPlace.address.toLowerCase() === placeToFind.address.toLowerCase();
-            return nameMatch && addressMatch;
-          });
-        }
-
-        // טעינת נתונים מהזיכרון המקומי
-        function loadFromLocalStorage() {
-          const savedPlaces = localStorage.getItem("savedPlaces");
-          if (savedPlaces) {
-            places = JSON.parse(savedPlaces);
-            if (places.length > 0) {
-              nextId = Math.max(...places.map((p) => p.id)) + 1;
-            }
-            updateJSONPreview();
-            displayExistingPlaces();
-            showStatus(`✅ נטענו ${places.length} מקומות מהזיכרון המקומי`, false);
-          }
-        }
-
-        // שמירת הנתונים בזיכרון המקומי
-        function saveToLocalStorage() {
-          localStorage.setItem("savedPlaces", JSON.stringify(places));
-          displayExistingPlaces();
-        }
-
-        // ניקוי הזיכרון המקומי
-        function clearLocalStorage() {
-          if (confirm("⚠️ האם אתה בטוח שברצונך למחוק את כל המקומות מהזיכרון המקומי?\n\nפעולה זו לא ניתנת לביטול!")) {
-            localStorage.removeItem("savedPlaces");
-            places = [];
-            nextId = Date.now();
-            updateJSONPreview();
-            document.getElementById("existing-places-container").innerHTML = "";
-            document.getElementById("places-count").textContent = "";
-            showStatus("🧹 כל המקומות נמחקו מהזיכרון המקומי", false);
-            location.reload();
-          }
-        }
-
-        // פונקציות עיקריות
-        async function searchPlace() {
-          const nameInput = document.getElementById("name").value;
-          const city = document.getElementById("city").value.trim();
-          const country = document.getElementById("country").value.trim();
-          const category = document.getElementById("category").value;
-          
-          // מילון תרגום מורחב
-          const hebrewToEnglish = {
-            "מגדל אייפל": "Eiffel Tower",
-            "פריז": "Paris",
-            "צרפת": "France",
-            "ירושלים": "Jerusalem",
-            "תל אביב": "Tel Aviv",
-            "ישראל": "Israel",
-            "שער הניצחון": "Arc de Triomphe",
-            "קטדרלת נוטרדאם": "Notre Dame Cathedral",
-            "מוזיאון הלובר": "Louvre Museum",
-            "טירת וינדזור": "Windsor Castle",
-            "כיכר טרפלגר": "Trafalgar Square"
-          };
-
-          const placeNames = nameInput.split("\n").map((line) => line.trim()).filter((line) => line && !line.startsWith("//") && !line.startsWith("#"));
-          
-          if (placeNames.length === 0) {
-            showStatus("❌ אנא הזן לפחות שם מקום אחד", true);
-            return;
-          }
-
-          searchStatus = {
-            found: 0,
-            notFound: 0,
-            duplicates: 0,
-            errors: 0,
-            updated: 0,
-          };
-
-          document.getElementById("loading").style.display = "inline";
-          document.getElementById("search-btn").disabled = true;
-          document.getElementById("results-container").innerHTML = "";
-          showStatus(`🔍 מתחיל לחפש ${placeNames.length} מקומות...`);
-
-          try {
-            lastSearchResults = [];
-            for (const name of placeNames) {
-              try {
-                let query = name;
-                let translatedName = hebrewToEnglish[name];
-                
-                // נסה חיפוש ראשוני עם השם המקורי
-                let found = await trySearch(name, city, country, category);
-                
-                // אם לא נמצא ונמצא תרגום, נסה עם השם המתורגם
-                if (!found && translatedName) {
-                  showStatus(`🔠 מנסה חיפוש עם תרגום: ${name} -> ${translatedName}`);
-                  found = await trySearch(translatedName, city, country, category);
-                  if (found) {
-                    // עדכן את השם המקורי בתוצאה לשם העברי
-                    found.originalName = name;
-                  }
-                }
-
-                if (!found) {
-                  lastSearchResults.push({
-                    originalName: name,
-                    category: category,
-                    notFound: true,
-                    details: "פרטים נוספים לא זמינים",
-                  });
-                  searchStatus.notFound++;
-                  showStatus(`🔍 לא נמצא: ${name} (נמצאו: ${searchStatus.found}, לא נמצאו: ${searchStatus.notFound}, שגיאות: ${searchStatus.errors})`);
-                }
-
-                // כיבוד הגבלת שיעורי הבקשות של Nominatim
-                await new Promise((resolve) => setTimeout(resolve, 1100));
-              } catch (error) {
-                console.error(`שגיאה בחיפוש ${name}:`, error);
+              if (!found) {
                 lastSearchResults.push({
                   originalName: name,
                   category: category,
-                  error: true,
-                  details: `שגיאה: ${error.message || "פרטים נוספים לא זמינים"}`,
+                  notFound: true,
+                  details: "פרטים נוספים לא זמינים",
                 });
-                searchStatus.errors++;
-                showStatus(`❌ שגיאה בחיפוש ${name}: ${error.message || "שגיאה לא ידועה"} (נמצאו: ${searchStatus.found}, לא נמצאו: ${searchStatus.notFound}, שגיאות: ${searchStatus.errors})`, true);
+                searchStatus.notFound++;
+                showStatus(
+                  `🔍 לא נמצא: ${name} (נמצאו: ${searchStatus.found}, לא נמצאו: ${searchStatus.notFound}, שגיאות: ${searchStatus.errors})`
+                );
               }
-            }
 
-            displaySearchResults();
-            
-            if (searchStatus.errors > 0) {
-              showStatus(`⚠️ סיום חיפוש עם שגיאות - נמצאו: ${searchStatus.found}, לא נמצאו: ${searchStatus.notFound}, שגיאות: ${searchStatus.errors}`, true);
-            } else if (searchStatus.found === 0) {
-              showStatus(`ℹ️ לא נמצאו תוצאות - נסה שמות אחרים או בדוק את האיות`, true);
-            } else {
-              showStatus(`✅ סיום חיפוש - נמצאו: ${searchStatus.found}, לא נמצאו: ${searchStatus.notFound}`, false);
+              await new Promise((resolve) => setTimeout(resolve, 1100));
+            } catch (error) {
+              console.error(`שגיאה בחיפוש ${name}:`, error);
+              lastSearchResults.push({
+                originalName: name,
+                category: category,
+                error: true,
+                details: `שגיאה: ${error.message || "פרטים נוספים לא זמינים"}`,
+              });
+              searchStatus.errors++;
+              showStatus(
+                `❌ שגיאה בחיפוש ${name}: ${
+                  error.message || "שגיאה לא ידועה"
+                } (נמצאו: ${searchStatus.found}, לא נמצאו: ${
+                  searchStatus.notFound
+                }, שגיאות: ${searchStatus.errors})`,
+                true
+              );
             }
-          } catch (error) {
-            console.error("שגיאה כללית בחיפוש:", error);
-            showStatus(`❌ שגיאה כללית בחיפוש: ${error.message || "פרטים לא זמינים"} (נמצאו: ${searchStatus.found}, לא נמצאו: ${searchStatus.notFound}, שגיאות: ${searchStatus.errors})`, true);
-          } finally {
-            document.getElementById("loading").style.display = "none";
-            document.getElementById("search-btn").disabled = false;
           }
-        }
 
-        async function trySearch(name, city, country, category) {
-          // בניית שאילתה מותאמת - שם המקום בלבד או עם עיר/מדינה אם מוזן
-          const queryParts = [name];
-          if (city) queryParts.push(city);
-          if (country) queryParts.push(country);
-          const query = queryParts.join(", ");
-          
-          const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=1&accept-language=en`;
-          
-          const response = await fetch(url, {
+          displaySearchResults();
+
+          if (searchStatus.errors > 0) {
+            showStatus(
+              `⚠️ סיום חיפוש עם שגיאות - נמצאו: ${searchStatus.found}, לא נמצאו: ${searchStatus.notFound}, שגיאות: ${searchStatus.errors}`,
+              true
+            );
+          } else if (searchStatus.found === 0) {
+            showStatus(
+              `ℹ️ לא נמצאו תוצאות - נסה שמות אחרים או בדוק את האיות`,
+              true
+            );
+          } else {
+            showStatus(
+              `✅ סיום חיפוש - נמצאו: ${searchStatus.found}, לא נמצאו: ${searchStatus.notFound}`,
+              false
+            );
+          }
+        } catch (error) {
+          console.error("שגיאה כללית בחיפוש:", error);
+          showStatus(
+            `❌ שגיאה כללית בחיפוש: ${
+              error.message || "פרטים לא זמינים"
+            } (נמצאו: ${searchStatus.found}, לא נמצאו: ${
+              searchStatus.notFound
+            }, שגיאות: ${searchStatus.errors})`,
+            true
+          );
+        } finally {
+          document.getElementById("loading").style.display = "none";
+          document.getElementById("search-btn").disabled = false;
+        }
+      }
+
+      async function trySearch(name, city, country, category) {
+        const queryParts = [name];
+        if (city) queryParts.push(city);
+        if (country) queryParts.push(country);
+        const query = queryParts.join(", ");
+
+        const nominatimUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
+          query
+        )}&format=json&addressdetails=1&limit=1&accept-language=en&extratags=1`;
+
+        try {
+          const nominatimResponse = await fetch(nominatimUrl, {
             headers: {
               "User-Agent": "PlaceManagementApp/1.0",
               "Accept-Language": "en",
             },
           });
 
-          if (!response.ok) {
-            throw new Error(`שגיאת HTTP: ${response.status}`);
+          if (!nominatimResponse.ok) {
+            throw new Error(`שגיאת HTTP: ${nominatimResponse.status}`);
           }
 
-          const result = await response.json();
-          if (result && result.length > 0) {
-            const foundPlace = result[0];
+          const nominatimResult = await nominatimResponse.json();
+          if (nominatimResult && nominatimResult.length > 0) {
+            const foundPlace = nominatimResult[0];
+            let description = await getPlaceDescription(foundPlace);
+
+            if (description.length > 500) {
+              description = description.substring(0, 497) + "...";
+            }
+
             lastSearchResults.push({
               ...foundPlace,
               originalName: name,
               category: category,
-              details: foundPlace.type ? `${foundPlace.type}` : "פרטים נוספים לא זמינים",
+              details: description,
             });
+
             searchStatus.found++;
-            showStatus(`🔍 מצאתי: ${name} (נמצאו: ${searchStatus.found}, לא נמצאו: ${searchStatus.notFound}, שגיאות: ${searchStatus.errors})`);
+            showStatus(
+              `🔍 מצאתי: ${name} (נמצאו: ${searchStatus.found}, לא נמצאו: ${searchStatus.notFound}, שגיאות: ${searchStatus.errors})`
+            );
             return true;
           }
           return false;
+        } catch (error) {
+          console.error("שגיאה בחיפוש:", error);
+          throw error;
+        }
+      }
+
+      async function getPlaceDescription(place) {
+        // קודם נבדוק אם יש קישור ישיר לויקיפדיה
+        if (place.extratags?.wikipedia) {
+          try {
+            const wikiTitle = place.extratags.wikipedia.split(":").pop();
+            const wikiExtract = await getWikipediaExtract(wikiTitle);
+            if (wikiExtract && wikiExtract !== "אין תיאור זמין") {
+              return wikiExtract;
+            }
+          } catch (e) {
+            console.error("שגיאה בקבלת תיאור מ-Wikipedia:", e);
+          }
         }
 
-        function displaySearchResults() {
-          const container = document.getElementById("results-container");
-          container.innerHTML = "";
-          
-          if (lastSearchResults.length === 0) {
-            container.innerHTML = "<p>לא נמצאו תוצאות</p>";
-            return;
-          }
-
-          lastSearchResults.forEach((place, index) => {
-            const div = document.createElement("div");
-            div.className = "search-result";
-            if (place.error) div.className += " error-result";
-            if (place.notFound) div.className += " not-found";
-            div.dataset.index = index;
-            
-            if (place.error) {
-              div.innerHTML = `
-                <div class="editable-field" data-field="name">${place.originalName}</div>
-                <p style="color: var(--danger-color);">שגיאה בחיפוש: ${place.details}</p>
-                <div class="search-buttons">
-                  <button onclick="addManualPlace('${place.originalName.replace(/'/g, "\\'")}')">הוסף ידנית</button>
-                  <button onclick="removeSearchResult(${index})" class="delete">מחק</button>
-                </div>
-              `;
-            } else if (place.notFound) {
-              div.innerHTML = `
-                <div class="editable-field" data-field="name">${place.originalName}</div>
-                <p>לא נמצא</p>
-                <p>
-                  <strong>פרטים נוספים:</strong>
-                  <span class="editable-field" data-field="details" style="white-space: pre-line;">${place.details}</span>
-                </p>
-                <div class="search-buttons">
-                  <button onclick="addManualPlace('${place.originalName.replace(/'/g, "\\'")}')">הוסף ידנית</button>
-                  <button onclick="removeSearchResult(${index})" class="delete">מחק</button>
-                </div>
-              `;
-            } else {
-              const displayName = place.display_name.split(",")[0];
-              div.innerHTML = `
-                <div class="editable-field" data-field="name">${displayName}</div>
-                <p>
-                  <strong>כתובת:</strong>
-                  <span class="editable-field" data-field="address">${cleanAddress(place)}</span>
-                </p>
-                <p>
-                  <strong>קואורדינטות:</strong>
-                  <span class="editable-field" data-field="lat">${place.lat}</span>, 
-                  <span class="editable-field" data-field="lng">${place.lon}</span>
-                </p>
-                <p>
-                  <strong>קטגוריה:</strong>
-                  <span class="editable-field" data-field="category">${
-                    document.getElementById("category").options[
-                      document.getElementById("category").selectedIndex
-                    ].text
-                  }</span>
-                </p>
-                <p>
-                  <strong>פרטים נוספים:</strong>
-                  <span class="editable-field" data-field="details" style="white-space: pre-line;">${place.details}</span>
-                </p>
-                <div class="update-options">
-                  <button onclick="addSelectedPlace(${index})">הוסף כחדש</button>
-                  <button onclick="updateExistingPlace(${index})" class="update-btn">עדכן קיים</button>
-                  <button onclick="removeSearchResult(${index})" class="delete">מחק</button>
-                </div>
-              `;
+        // אם אין ויקיפדיה, נבדוק ב-Wikidata
+        if (place.extratags?.wikidata) {
+          try {
+            const wikidataId = place.extratags.wikidata;
+            const wikiDescription = await getWikidataDescription(wikidataId);
+            if (wikiDescription && wikiDescription !== "אין תיאור זמין") {
+              return wikiDescription;
             }
-            container.appendChild(div);
-          });
-
-          document.querySelectorAll(".editable-field").forEach((field) => {
-            field.addEventListener("click", function(e) {
-              e.stopPropagation();
-              if (currentEditField && currentEditField !== this) {
-                const inputElement = currentEditField.querySelector(".edit-input, .edit-textarea, .edit-select");
-                if (inputElement) {
-                  const fieldName = currentEditField.dataset.field;
-                  saveEdit(currentEditField, inputElement, fieldName);
-                }
-              }
-              startEditField(this);
-            });
-          });
-
-          document.getElementById("search-results").style.display = "block";
+          } catch (e) {
+            console.error("שגיאה בקבלת תיאור מ-Wikidata:", e);
+          }
         }
 
-        function startEditField(fieldElement) {
-          if (fieldElement === currentEditField) {
-            return;
-          }
-          
-          if (currentEditField) {
-            const inputElement = currentEditField.querySelector(".edit-input, .edit-textarea, .edit-select");
-            if (inputElement) {
-              const fieldName = currentEditField.dataset.field;
-              saveEdit(currentEditField, inputElement, fieldName);
-            }
-          }
-
-          currentEditField = fieldElement;
-          const currentValue = fieldElement.textContent;
-          const fieldName = fieldElement.dataset.field;
-          const isCategory = fieldName === "category";
-          const isDetails = fieldName === "details";
-          const isCoordinates = fieldName === "lat" || fieldName === "lng";
-          
-          fieldElement.dataset.originalValue = currentValue;
-          let inputElement;
-
-          if (isCategory) {
-            inputElement = document.createElement("select");
-            inputElement.className = "edit-select";
-            const categories = [
-              { value: "lodging", text: "שמורים" },
-              { value: "attraction", text: "אתר תירותי" },
-              { value: "restaurant", text: "מסעדה" },
-              { value: "cafe", text: "בית קפה" },
-              { value: "pub", text: "פאב" },
-              { value: "shopping", text: "שופינג" },
-              { value: "other", text: "אחר" }
-            ];
-            
-            categories.forEach((cat) => {
-              const option = document.createElement("option");
-              option.value = cat.value;
-              option.textContent = cat.text;
-              if (currentValue === cat.text) option.selected = true;
-              inputElement.appendChild(option);
-            });
-          } else if (isDetails) {
-            inputElement = document.createElement("textarea");
-            inputElement.className = "edit-textarea";
-            inputElement.value = currentValue;
-          } else {
-            inputElement = document.createElement("input");
-            inputElement.type = isCoordinates ? "number" : "text";
-            inputElement.className = "edit-input";
-            inputElement.value = currentValue;
-          }
-
-          const saveButton = document.createElement("button");
-          saveButton.textContent = "שמור";
-          saveButton.className = "save-btn";
-          
-          const cancelButton = document.createElement("button");
-          cancelButton.textContent = "ביטול";
-          cancelButton.className = "cancel-btn";
-          
-          const buttonsContainer = document.createElement("div");
-          buttonsContainer.className = "save-cancel-buttons";
-          buttonsContainer.appendChild(saveButton);
-          buttonsContainer.appendChild(cancelButton);
-          
-          const editContainer = document.createElement("div");
-          editContainer.className = "edit-container";
-          editContainer.appendChild(inputElement);
-          editContainer.appendChild(buttonsContainer);
-          
-          fieldElement.innerHTML = "";
-          fieldElement.appendChild(editContainer);
-          inputElement.focus();
-
-          saveButton.addEventListener("click", function(e) {
-            e.stopPropagation();
-            saveEdit(fieldElement, inputElement, fieldName);
-          });
-
-          cancelButton.addEventListener("click", function(e) {
-            e.stopPropagation();
-            cancelEdit(fieldElement);
-          });
-
-          inputElement.addEventListener("keydown", function(e) {
-            if (e.key === "Enter" && !isDetails) {
-              e.preventDefault();
-              saveEdit(fieldElement, inputElement, fieldName);
-            } else if (e.key === "Escape") {
-              e.preventDefault();
-              cancelEdit(fieldElement);
-            }
-          });
-
-          if (outsideClickHandler) {
-            document.removeEventListener("click", outsideClickHandler);
-          }
-          
-          outsideClickHandler = function(e) {
-            if (!fieldElement.contains(e.target)) {
-              const inputElement = fieldElement.querySelector(".edit-input, .edit-textarea, .edit-select");
-              if (inputElement) {
-                saveEdit(fieldElement, inputElement, fieldElement.dataset.field);
-              }
-            }
+        // אם כל השאר נכשל, נשתמש במידע הבסיסי
+        if (place.type) {
+          const typeDescriptions = {
+            attraction: "אתר תיירות פופולרי",
+            monument: "מונומנט או אנדרטה היסטורית",
+            museum: "מוזיאון או גלריה",
+            tower: "מגדל או מבנה גבוה",
+            bridge: "גשר או מעבר מעל מים",
+            castle: "טירה או מבצר היסטורי",
+            park: "פארק או גן ציבורי",
           };
-          
-          setTimeout(() => {
-            document.addEventListener("click", outsideClickHandler);
-          }, 10);
+          return typeDescriptions[place.type] || `אתר מסוג ${place.type}`;
         }
 
-        function saveEdit(fieldElement, inputElement, fieldName) {
-          let newValue;
-          if (inputElement.tagName === "SELECT") {
-            newValue = inputElement.options[inputElement.selectedIndex].text;
-          } else {
-            newValue = inputElement.value.replace(/\\r\\n/g, "\n").replace(/\\n/g, "\n").replace(/\r\n/g, "\n").replace(/\n/g, "\n");
-          }
-          
-          fieldElement.textContent = newValue;
-          fieldElement.addEventListener("click", function(e) {
-            e.stopPropagation();
-            startEditField(this);
-          });
+        return "אין תיאור זמין";
+      }
 
-          const resultIndex = parseInt(fieldElement.closest(".search-result").dataset.index);
-          const place = lastSearchResults[resultIndex];
-          
-          if (fieldName === "name") {
-            if (place.originalName) {
-              place.originalName = newValue;
+      async function getWikidataDescription(wikidataId) {
+        const url = `https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${wikidataId}&props=descriptions&languages=he&format=json&origin=*`;
+
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error("שגיאה בקבלת נתונים מ-Wikidata");
+        }
+
+        const data = await response.json();
+        const entity = data.entities[wikidataId];
+
+        if (entity.descriptions?.he) {
+          return entity.descriptions.he.value;
+        }
+
+        return "אין תיאור זמין";
+      }
+
+      async function getWikipediaExtract(title) {
+        // ננסה ראשון לקבל את התיאור בעברית
+        const hebrewUrl = `https://he.wikipedia.org/w/api.php?action=query&format=json&prop=extracts&exintro=true&explaintext=true&titles=${encodeURIComponent(
+          title
+        )}&origin=*`;
+
+        const hebrewResponse = await fetch(hebrewUrl);
+        if (hebrewResponse.ok) {
+          const data = await hebrewResponse.json();
+          const pages = data.query.pages;
+          const pageId = Object.keys(pages)[0];
+
+          if (pageId !== "-1" && pages[pageId].extract) {
+            const hebrewExtract = pages[pageId].extract;
+            if (hebrewExtract.length > 100) {
+              return hebrewExtract;
             }
-            if (place.display_name) {
-              const parts = place.display_name.split(",");
-              parts[0] = newValue;
-              place.display_name = parts.join(",");
-            } else {
-              place.display_name = newValue + ", " + (place.address || "");
-            }
-          } else if (fieldName === "address") {
-            place.display_name = newValue;
-          } else if (fieldName === "lat") {
-            place.lat = parseFloat(newValue) || 0;
-          } else if (fieldName === "lng") {
-            place.lon = parseFloat(newValue) || 0;
-          } else if (fieldName === "category") {
-            place.category = inputElement.value;
-          } else if (fieldName === "details") {
-            place.details = newValue;
-          }
-
-          if (outsideClickHandler) {
-            document.removeEventListener("click", outsideClickHandler);
-            outsideClickHandler = null;
-          }
-          
-          currentEditField = null;
-        }
-
-        function cancelEdit(fieldElement) {
-          fieldElement.textContent = fieldElement.dataset.originalValue;
-          fieldElement.addEventListener("click", function(e) {
-            e.stopPropagation();
-            startEditField(this);
-          });
-
-          if (outsideClickHandler) {
-            document.removeEventListener("click", outsideClickHandler);
-            outsideClickHandler = null;
-          }
-          
-          currentEditField = null;
-        }
-
-        function removeSearchResult(index) {
-          if (confirm("⚠️ האם אתה בטוח שברצונך למחוק את תוצאת החיפוש הזו?")) {
-            lastSearchResults.splice(index, 1);
-            displaySearchResults();
-            showStatus("🗑️ הרשומה נמחקה בהצלחה", false);
           }
         }
 
-        function addSelectedPlace(index) {
-          const place = lastSearchResults[index];
-          const newPlace = {
-            id: nextId++,
-            category: place.category,
-            name: place.display_name.split(",")[0] || place.originalName,
-            address: cleanAddress(place),
-            lat: parseFloat(place.lat),
-            lng: parseFloat(place.lon),
-            details: place.details || "פרטים נוספים לא זמינים",
-          };
+        // אם לא מצאנו תיאור מספק בעברית, ננסה באנגלית
+        const englishUrl = `https://en.wikipedia.org/w/api.php?action=query&format=json&prop=extracts&exintro=true&explaintext=true&titles=${encodeURIComponent(
+          title
+        )}&origin=*`;
 
-          const existingPlace = findExistingPlace(newPlace);
-          if (existingPlace) {
-            searchStatus.duplicates++;
-            showStatus(`⚠️ "${newPlace.name}" כבר קיים ברשימה (נמצאו: ${searchStatus.found}, לא נמצאו: ${searchStatus.notFound}, שגיאות: ${searchStatus.errors}, כפילויות: ${searchStatus.duplicates})`, true);
-            return;
-          }
-
-          places.push(newPlace);
-          saveToLocalStorage();
-          updateJSONPreview();
-          showStatus(`✅ "${newPlace.name}" נוסף לרשימה בהצלחה (נמצאו: ${searchStatus.found}, לא נמצאו: ${searchStatus.notFound}, שגיאות: ${searchStatus.errors}, כפילויות: ${searchStatus.duplicates})`, false);
+        const englishResponse = await fetch(englishUrl);
+        if (!englishResponse.ok) {
+          throw new Error("שגיאה בקבלת נתונים מ-Wikipedia");
         }
 
-        function updateExistingPlace(index) {
-          const place = lastSearchResults[index];
-          const updatedPlace = {
-            id: nextId++,
-            category: place.category,
-            name: place.display_name?.split(",")[0] || place.originalName,
-            address: cleanAddress(place),
-            lat: parseFloat(place.lat),
-            lng: parseFloat(place.lon),
-            details: place.details || "פרטים נוספים לא זמינים",
-          };
+        const englishData = await englishResponse.json();
+        const englishPages = englishData.query.pages;
+        const englishPageId = Object.keys(englishPages)[0];
 
-          const existingPlaceIndex = places.findIndex(
-            (p) => p.name.toLowerCase() === updatedPlace.name.toLowerCase() && p.address.toLowerCase() === updatedPlace.address.toLowerCase()
-          );
-
-          if (existingPlaceIndex !== -1) {
-            if (confirm(`⚠️ האם אתה בטוח שברצונך לעדכן את המקום "${updatedPlace.name}"?\n\nהקטגוריה תשתנה מ-"${places[existingPlaceIndex].category}" ל-"${updatedPlace.category}"`)) {
-              updatedPlace.id = places[existingPlaceIndex].id;
-              Object.assign(places[existingPlaceIndex], updatedPlace);
-              searchStatus.updated++;
-              showStatus(`✅ "${updatedPlace.name}" עודכן בהצלחה (קטגוריה: ${updatedPlace.category})`, false);
-            }
-          } else {
-            places.push(updatedPlace);
-            showStatus(`✅ "${updatedPlace.name}" נוסף לרשימה בהצלחה`, false);
-          }
-
-          saveToLocalStorage();
-          updateJSONPreview();
+        if (englishPageId === "-1" || !englishPages[englishPageId].extract) {
+          return "אין תיאור זמין";
         }
 
-        function addManualPlace(name) {
-          const category = document.getElementById("category").value;
-          const details = prompt("הזן פרטים על המקום:", "פרטים על המקום") || "אין פרטים נוספים";
-          const newPlace = {
-            id: nextId++,
-            category: category,
-            name: name,
-            address: prompt("הזן כתובת:", "כתובת לא ידועה") || "כתובת לא ידועה",
-            lat: parseFloat(prompt("הזן קו רוחב:", "0")) || 0,
-            lng: parseFloat(prompt("הזן קו אורך:", "0")) || 0,
-            details: details.replace(/\r\n/g, "\n").replace(/\n/g, "\n"),
-          };
+        // תרגום בסיסי של מונחים נפוצים מאנגלית לעברית
+        const translatedExtract = englishPages[englishPageId].extract
+          .replace(/Eiffel Tower/g, "מגדל אייפל")
+          .replace(/Paris/g, "פריז")
+          .replace(/France/g, "צרפת")
+          .replace(/built in/g, "נבנה ב")
+          .replace(/height/g, "גובה")
+          .replace(/meters/g, "מטרים");
 
-          const existingPlace = findExistingPlace(newPlace);
-          if (existingPlace) {
-            if (confirm(`⚠️ "${name}" כבר קיים ברשימה. האם ברצונך לעדכן את הרשומה הקיימת?\n\nהקטגוריה תתעדכן מ-"${existingPlace.category}" ל-"${newPlace.category}"`)) {
-              Object.assign(existingPlace, newPlace);
-              searchStatus.updated++;
-              showStatus(`✅ "${name}" עודכן בהצלחה (קטגוריה: ${newPlace.category})`, false);
-            } else {
-              searchStatus.duplicates++;
-              showStatus(`⚠️ "${name}" כבר קיים ברשימה ולא עודכן`, true);
-              return;
-            }
-          } else {
-            places.push(newPlace);
-            showStatus(`✅ "${name}" נוסף ידנית לרשימה`, false);
-          }
+        return translatedExtract;
+      }
 
-          saveToLocalStorage();
-          updateJSONPreview();
+      function displaySearchResults() {
+        const container = document.getElementById("results-container");
+        container.innerHTML = "";
+
+        if (lastSearchResults.length === 0) {
+          container.innerHTML = "<p>לא נמצאו תוצאות</p>";
+          return;
         }
 
-        // פונקציות חדשות לניהול המקומות הקיימים
-        function displayExistingPlaces() {
-          filterPlaces();
-        }
+        lastSearchResults.forEach((place, index) => {
+          const div = document.createElement("div");
+          div.className = "search-result";
+          if (place.error) div.className += " error-result";
+          if (place.notFound) div.className += " not-found";
+          div.dataset.index = index;
 
-        function filterPlaces() {
-          const searchTerm = document.getElementById("places-search").value.toLowerCase();
-          const categoryFilter = document.getElementById("places-category-filter").value;
-          
-          const filteredPlaces = places.filter(place => {
-            const matchesSearch = 
-              place.name.toLowerCase().includes(searchTerm) ||
-              place.address.toLowerCase().includes(searchTerm) ||
-              place.details.toLowerCase().includes(searchTerm);
-            
-            const matchesCategory = 
-              !categoryFilter || 
-              place.category === categoryFilter;
-            
-            return matchesSearch && matchesCategory;
-          });
-
-          renderExistingPlaces(filteredPlaces);
-        }
-
-        function renderExistingPlaces(placesToRender) {
-          const container = document.getElementById("existing-places-container");
-          container.innerHTML = "";
-          
-          if (placesToRender.length === 0) {
-            container.innerHTML = "<p>לא נמצאו מקומות</p>";
-            document.getElementById("places-count").textContent = "";
-            return;
-          }
-
-          document.getElementById("places-count").textContent = `מציג ${placesToRender.length} מתוך ${places.length} מקומות`;
-          
-          placesToRender.forEach((place, index) => {
-            const div = document.createElement("div");
-            div.className = "place-item";
-            div.dataset.id = place.id;
-            
+          if (place.error) {
             div.innerHTML = `
-              <div class="place-actions">
-                <button onclick="editExistingPlace(${place.id})" class="update-btn">ערוך</button>
-                <button onclick="deleteExistingPlace(${place.id})" class="delete">מחק</button>
-              </div>
-              <h3>${place.name}</h3>
-              <p><strong>כתובת:</strong> ${place.address}</p>
-              <p><strong>קואורדינטות:</strong> ${place.lat}, ${place.lng}</p>
-              <p><strong>קטגוריה:</strong> ${getCategoryName(place.category)}</p>
-              <p><strong>פרטים:</strong> ${place.details}</p>
-            `;
-            
-            container.appendChild(div);
+                      <div class="editable-field" data-field="name">${
+                        place.originalName
+                      }</div>
+                      <p style="color: var(--danger-color);">שגיאה בחיפוש: ${
+                        place.details
+                      }</p>
+                      <div class="search-buttons">
+                          <button onclick="addManualPlace('${place.originalName.replace(
+                            /'/g,
+                            "\\'"
+                          )}')">הוסף ידנית</button>
+                          <button onclick="removeSearchResult(${index})" class="delete">מחק</button>
+                      </div>
+                  `;
+          } else if (place.notFound) {
+            div.innerHTML = `
+                      <div class="editable-field" data-field="name">${
+                        place.originalName
+                      }</div>
+                      <p>לא נמצא</p>
+                      <p>
+                          <strong>פרטים נוספים:</strong>
+                          <span class="editable-field" data-field="details" style="white-space: pre-line;">${
+                            place.details
+                          }</span>
+                      </p>
+                      <div class="search-buttons">
+                          <button onclick="addManualPlace('${place.originalName.replace(
+                            /'/g,
+                            "\\'"
+                          )}')">הוסף ידנית</button>
+                          <button onclick="removeSearchResult(${index})" class="delete">מחק</button>
+                      </div>
+                  `;
+          } else {
+            const displayName = place.display_name.split(",")[0];
+            div.innerHTML = `
+                      <div class="editable-field" data-field="name">${displayName}</div>
+                      <p>
+                          <strong>כתובת:</strong>
+                          <span class="editable-field" data-field="address">${cleanAddress(
+                            place
+                          )}</span>
+                      </p>
+                      <p>
+                          <strong>קואורדינטות:</strong>
+                          <span class="editable-field" data-field="lat">${
+                            place.lat
+                          }</span>, 
+                          <span class="editable-field" data-field="lng">${
+                            place.lon
+                          }</span>
+                      </p>
+                      <p>
+                          <strong>קטגוריה:</strong>
+                          <span class="editable-field" data-field="category">${
+                            document.getElementById("category").options[
+                              document.getElementById("category").selectedIndex
+                            ].text
+                          }</span>
+                      </p>
+                      <div class="description">
+                          <strong>תיאור המקום:</strong>
+                          <div class="description-text editable-field" data-field="details">${
+                            place.details || "אין תיאור זמין"
+                          }</div>
+                      </div>
+                      <div class="update-options">
+                          <button onclick="addSelectedPlace(${index})">הוסף כחדש</button>
+                          <button onclick="updateExistingPlace(${index})" class="update-btn">עדכן קיים</button>
+                          <button onclick="removeSearchResult(${index})" class="delete">מחק</button>
+                      </div>
+                  `;
+          }
+          container.appendChild(div);
+        });
+
+        document.querySelectorAll(".editable-field").forEach((field) => {
+          field.addEventListener("click", function (e) {
+            e.stopPropagation();
+            if (currentEditField && currentEditField !== this) {
+              const inputElement = currentEditField.querySelector(
+                ".edit-input, .edit-textarea, .edit-select"
+              );
+              if (inputElement) {
+                const fieldName = currentEditField.dataset.field;
+                saveEdit(currentEditField, inputElement, fieldName);
+              }
+            }
+            startEditField(this);
           });
+        });
+
+        document.getElementById("search-results").style.display = "block";
+      }
+
+      function startEditField(fieldElement) {
+        if (fieldElement === currentEditField) {
+          return;
         }
 
-        function getCategoryName(categoryValue) {
-          const categoryMap = {
-            lodging: "שמורים",
-            attraction: "אתר תירותי",
-            restaurant: "מסעדה",
-            cafe: "בית קפה",
-            pub: "פאב",
-            shopping: "שופינג",
-            other: "אחר"
-          };
-          return categoryMap[categoryValue] || categoryValue;
-        }
-
-        function editExistingPlace(id) {
-          const placeIndex = places.findIndex(p => p.id === id);
-          if (placeIndex === -1) return;
-          
-          const place = places[placeIndex];
-          
-          const newName = prompt("שם המקום:", place.name) || place.name;
-          const newAddress = prompt("כתובת:", place.address) || place.address;
-          const newLat = parseFloat(prompt("קו רוחב:", place.lat)) || place.lat;
-          const newLng = parseFloat(prompt("קו אורך:", place.lng)) || place.lng;
-          const newDetails = prompt("פרטים:", place.details) || place.details;
-          
-          let newCategory = place.category;
-          const categoryInput = prompt(`קטגוריה (הזן אחת מהאפשרויות הבאות):\nשמורים, אתר תירותי, מסעדה, בית קפה, פאב, שופינג, אחר`, getCategoryName(place.category));
-          
-          if (categoryInput) {
-            const categoryMap = {
-              "שמורים": "lodging",
-              "אתר תירותי": "attraction",
-              "מסעדה": "restaurant",
-              "בית קפה": "cafe",
-              "פאב": "pub",
-              "שופינג": "shopping",
-              "אחר": "other"
-            };
-            newCategory = categoryMap[categoryInput] || place.category;
-          }
-          
-          if (confirm(`⚠️ האם אתה בטוח שברצונך לעדכן את המקום "${place.name}"?`)) {
-            places[placeIndex] = {
-              ...place,
-              name: newName,
-              address: newAddress,
-              lat: newLat,
-              lng: newLng,
-              details: newDetails,
-              category: newCategory
-            };
-            
-            saveToLocalStorage();
-            showStatus(`✅ "${newName}" עודכן בהצלחה`, false);
+        if (currentEditField) {
+          const inputElement = currentEditField.querySelector(
+            ".edit-input, .edit-textarea, .edit-select"
+          );
+          if (inputElement) {
+            const fieldName = currentEditField.dataset.field;
+            saveEdit(currentEditField, inputElement, fieldName);
           }
         }
 
-        function deleteExistingPlace(id) {
-          const placeIndex = places.findIndex(p => p.id === id);
-          if (placeIndex === -1) return;
-          
-          const placeName = places[placeIndex].name;
-          
-          if (confirm(`⚠️ האם אתה בטוח שברצונך למחוק את המקום "${placeName}"?\n\nפעולה זו לא ניתנת לביטול!`)) {
-            places.splice(placeIndex, 1);
-            saveToLocalStorage();
-            showStatus(`🗑️ "${placeName}" נמחק בהצלחה`, false);
-          }
-        }
+        currentEditField = fieldElement;
+        const currentValue = fieldElement.textContent;
+        const fieldName = fieldElement.dataset.field;
+        const isCategory = fieldName === "category";
+        const isDetails = fieldName === "details";
+        const isCoordinates = fieldName === "lat" || fieldName === "lng";
 
-        function updateJSONPreview() {
-          const jsonOutput = document.getElementById("json-output");
-          const jsonData = places.map((place) => {
-            const categoryMap = {
-              lodging: "lodging",
-              attraction: "attraction",
-              restaurant: "restaurant",
-              cafe: "cafe",
-              pub: "pub",
-              shopping: "shopping",
-              other: "other",
-            };
-            return {
-              id: place.id,
-              category: categoryMap[place.category] || place.category,
-              name: place.name,
-              address: place.address,
-              lat: place.lat,
-              lng: place.lng,
-              details: place.details,
-            };
+        fieldElement.dataset.originalValue = currentValue;
+        let inputElement;
+
+        if (isCategory) {
+          inputElement = document.createElement("select");
+          inputElement.className = "edit-select";
+          const categories = [
+            { value: "lodging", text: "שמורים" },
+            { value: "attraction", text: "אתר תירותי" },
+            { value: "restaurant", text: "מסעדה" },
+            { value: "cafe", text: "בית קפה" },
+            { value: "pub", text: "פאב" },
+            { value: "shopping", text: "שופינג" },
+            { value: "other", text: "אחר" },
+          ];
+
+          categories.forEach((cat) => {
+            const option = document.createElement("option");
+            option.value = cat.value;
+            option.textContent = cat.text;
+            if (currentValue === cat.text) option.selected = true;
+            inputElement.appendChild(option);
           });
-          jsonOutput.textContent = JSON.stringify(jsonData, null, 2);
+        } else if (isDetails) {
+          inputElement = document.createElement("textarea");
+          inputElement.className = "edit-textarea";
+          inputElement.value = currentValue;
+        } else {
+          inputElement = document.createElement("input");
+          inputElement.type = isCoordinates ? "number" : "text";
+          inputElement.className = "edit-input";
+          inputElement.value = currentValue;
         }
 
-        function downloadJSON() {
-          if (places.length === 0) {
-            showStatus("❌ אין מקומות להורדה", true);
+        const saveButton = document.createElement("button");
+        saveButton.textContent = "שמור";
+        saveButton.className = "save-btn";
+
+        const cancelButton = document.createElement("button");
+        cancelButton.textContent = "ביטול";
+        cancelButton.className = "cancel-btn";
+
+        const buttonsContainer = document.createElement("div");
+        buttonsContainer.className = "save-cancel-buttons";
+        buttonsContainer.appendChild(saveButton);
+        buttonsContainer.appendChild(cancelButton);
+
+        const editContainer = document.createElement("div");
+        editContainer.className = "edit-container";
+        editContainer.appendChild(inputElement);
+        editContainer.appendChild(buttonsContainer);
+
+        fieldElement.innerHTML = "";
+        fieldElement.appendChild(editContainer);
+        inputElement.focus();
+
+        saveButton.addEventListener("click", function (e) {
+          e.stopPropagation();
+          saveEdit(fieldElement, inputElement, fieldName);
+        });
+
+        cancelButton.addEventListener("click", function (e) {
+          e.stopPropagation();
+          cancelEdit(fieldElement);
+        });
+
+        inputElement.addEventListener("keydown", function (e) {
+          if (e.key === "Enter" && !isDetails) {
+            e.preventDefault();
+            saveEdit(fieldElement, inputElement, fieldName);
+          } else if (e.key === "Escape") {
+            e.preventDefault();
+            cancelEdit(fieldElement);
+          }
+        });
+
+        if (outsideClickHandler) {
+          document.removeEventListener("click", outsideClickHandler);
+        }
+
+        outsideClickHandler = function (e) {
+          if (!fieldElement.contains(e.target)) {
+            const inputElement = fieldElement.querySelector(
+              ".edit-input, .edit-textarea, .edit-select"
+            );
+            if (inputElement) {
+              saveEdit(fieldElement, inputElement, fieldElement.dataset.field);
+            }
+          }
+        };
+
+        setTimeout(() => {
+          document.addEventListener("click", outsideClickHandler);
+        }, 10);
+      }
+
+      function saveEdit(fieldElement, inputElement, fieldName) {
+        let newValue;
+        if (inputElement.tagName === "SELECT") {
+          newValue = inputElement.options[inputElement.selectedIndex].text;
+        } else {
+          newValue = inputElement.value
+            .replace(/\\r\\n/g, "\n")
+            .replace(/\\n/g, "\n")
+            .replace(/\r\n/g, "\n")
+            .replace(/\n/g, "\n");
+        }
+
+        fieldElement.textContent = newValue;
+        fieldElement.addEventListener("click", function (e) {
+          e.stopPropagation();
+          startEditField(this);
+        });
+
+        const resultIndex = parseInt(
+          fieldElement.closest(".search-result").dataset.index
+        );
+        const place = lastSearchResults[resultIndex];
+
+        if (fieldName === "name") {
+          if (place.originalName) {
+            place.originalName = newValue;
+          }
+          if (place.display_name) {
+            const parts = place.display_name.split(",");
+            parts[0] = newValue;
+            place.display_name = parts.join(",");
+          } else {
+            place.display_name = newValue + ", " + (place.address || "");
+          }
+        } else if (fieldName === "address") {
+          place.display_name = newValue;
+        } else if (fieldName === "lat") {
+          place.lat = parseFloat(newValue) || 0;
+        } else if (fieldName === "lng") {
+          place.lon = parseFloat(newValue) || 0;
+        } else if (fieldName === "category") {
+          place.category = inputElement.value;
+        } else if (fieldName === "details") {
+          place.details = newValue;
+        }
+
+        if (outsideClickHandler) {
+          document.removeEventListener("click", outsideClickHandler);
+          outsideClickHandler = null;
+        }
+
+        currentEditField = null;
+      }
+
+      function cancelEdit(fieldElement) {
+        fieldElement.textContent = fieldElement.dataset.originalValue;
+        fieldElement.addEventListener("click", function (e) {
+          e.stopPropagation();
+          startEditField(this);
+        });
+
+        if (outsideClickHandler) {
+          document.removeEventListener("click", outsideClickHandler);
+          outsideClickHandler = null;
+        }
+
+        currentEditField = null;
+      }
+
+      function removeSearchResult(index) {
+        if (confirm("⚠️ האם אתה בטוח שברצונך למחוק את תוצאת החיפוש הזו?")) {
+          lastSearchResults.splice(index, 1);
+          displaySearchResults();
+          showStatus("🗑️ הרשומה נמחקה בהצלחה", false);
+        }
+      }
+
+      function addSelectedPlace(index) {
+        const place = lastSearchResults[index];
+        const newPlace = {
+          id: nextId++,
+          category: place.category,
+          name: place.display_name.split(",")[0] || place.originalName,
+          address: cleanAddress(place),
+          lat: parseFloat(place.lat),
+          lng: parseFloat(place.lon),
+          details: place.details || "אין תיאור זמין",
+        };
+
+        const existingPlace = findExistingPlace(newPlace);
+        if (existingPlace) {
+          searchStatus.duplicates++;
+          showStatus(
+            `⚠️ "${newPlace.name}" כבר קיים ברשימה (נמצאו: ${searchStatus.found}, לא נמצאו: ${searchStatus.notFound}, שגיאות: ${searchStatus.errors}, כפילויות: ${searchStatus.duplicates})`,
+            true
+          );
+          return;
+        }
+
+        places.push(newPlace);
+        saveToLocalStorage();
+        updateJSONPreview();
+        showStatus(
+          `✅ "${newPlace.name}" נוסף לרשימה בהצלחה (נמצאו: ${searchStatus.found}, לא נמצאו: ${searchStatus.notFound}, שגיאות: ${searchStatus.errors}, כפילויות: ${searchStatus.duplicates})`,
+          false
+        );
+      }
+
+      function updateExistingPlace(index) {
+        const place = lastSearchResults[index];
+        const updatedPlace = {
+          id: nextId++,
+          category: place.category,
+          name: place.display_name?.split(",")[0] || place.originalName,
+          address: cleanAddress(place),
+          lat: parseFloat(place.lat),
+          lng: parseFloat(place.lon),
+          details: place.details || "אין תיאור זמין",
+        };
+
+        const existingPlaceIndex = places.findIndex(
+          (p) =>
+            p.name.toLowerCase() === updatedPlace.name.toLowerCase() &&
+            p.address.toLowerCase() === updatedPlace.address.toLowerCase()
+        );
+
+        if (existingPlaceIndex !== -1) {
+          if (
+            confirm(
+              `⚠️ האם אתה בטוח שברצונך לעדכן את המקום "${updatedPlace.name}"?\n\nהקטגוריה תשתנה מ-"${places[existingPlaceIndex].category}" ל-"${updatedPlace.category}"`
+            )
+          ) {
+            updatedPlace.id = places[existingPlaceIndex].id;
+            Object.assign(places[existingPlaceIndex], updatedPlace);
+            searchStatus.updated++;
+            showStatus(
+              `✅ "${updatedPlace.name}" עודכן בהצלחה (קטגוריה: ${updatedPlace.category})`,
+              false
+            );
+          }
+        } else {
+          places.push(updatedPlace);
+          showStatus(`✅ "${updatedPlace.name}" נוסף לרשימה בהצלחה`, false);
+        }
+
+        saveToLocalStorage();
+        updateJSONPreview();
+      }
+
+      function addManualPlace(name) {
+        const category = document.getElementById("category").value;
+        const details =
+          prompt("הזן פרטים על המקום:", "פרטים על המקום") || "אין פרטים נוספים";
+        const newPlace = {
+          id: nextId++,
+          category: category,
+          name: name,
+          address: prompt("הזן כתובת:", "כתובת לא ידועה") || "כתובת לא ידועה",
+          lat: parseFloat(prompt("הזן קו רוחב:", "0")) || 0,
+          lng: parseFloat(prompt("הזן קו אורך:", "0")) || 0,
+          details: details.replace(/\r\n/g, "\n").replace(/\n/g, "\n"),
+        };
+
+        const existingPlace = findExistingPlace(newPlace);
+        if (existingPlace) {
+          if (
+            confirm(
+              `⚠️ "${name}" כבר קיים ברשימה. האם ברצונך לעדכן את הרשומה הקיימת?\n\nהקטגוריה תתעדכן מ-"${existingPlace.category}" ל-"${newPlace.category}"`
+            )
+          ) {
+            Object.assign(existingPlace, newPlace);
+            searchStatus.updated++;
+            showStatus(
+              `✅ "${name}" עודכן בהצלחה (קטגוריה: ${newPlace.category})`,
+              false
+            );
+          } else {
+            searchStatus.duplicates++;
+            showStatus(`⚠️ "${name}" כבר קיים ברשימה ולא עודכן`, true);
             return;
           }
-          
-          let fileName = prompt("הזן שם לקובץ ה-JSON:", "places");
-          if (fileName === null || fileName.trim() === "") {
-            fileName = "places";
-          }
-          
-          fileName = fileName.trim();
-          if (!fileName.toLowerCase().endsWith(".json")) {
-            fileName += ".json";
-          }
-          
-          const data = document.getElementById("json-output").textContent;
-          const blob = new Blob([data], { type: "application/json" });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.href = url;
-          a.download = fileName;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-          
-          showStatus(`✅ קובץ ${fileName} הורד בהצלחה!`, false);
+        } else {
+          places.push(newPlace);
+          showStatus(`✅ "${name}" נוסף ידנית לרשימה`, false);
         }
-      </script>
+
+        saveToLocalStorage();
+        updateJSONPreview();
+      }
+
+      function displayExistingPlaces() {
+        filterPlaces();
+      }
+
+      function filterPlaces() {
+        const searchTerm = document
+          .getElementById("places-search")
+          .value.toLowerCase();
+        const categoryFilter = document.getElementById(
+          "places-category-filter"
+        ).value;
+
+        const filteredPlaces = places.filter((place) => {
+          const matchesSearch =
+            place.name.toLowerCase().includes(searchTerm) ||
+            place.address.toLowerCase().includes(searchTerm) ||
+            place.details.toLowerCase().includes(searchTerm);
+
+          const matchesCategory =
+            !categoryFilter || place.category === categoryFilter;
+
+          return matchesSearch && matchesCategory;
+        });
+
+        renderExistingPlaces(filteredPlaces);
+      }
+
+      function renderExistingPlaces(placesToRender) {
+        const container = document.getElementById("existing-places-container");
+        container.innerHTML = "";
+
+        if (placesToRender.length === 0) {
+          container.innerHTML = "<p>לא נמצאו מקומות</p>";
+          document.getElementById("places-count").textContent = "";
+          return;
+        }
+
+        document.getElementById(
+          "places-count"
+        ).textContent = `מציג ${placesToRender.length} מתוך ${places.length} מקומות`;
+
+        placesToRender.forEach((place, index) => {
+          const div = document.createElement("div");
+          div.className = "place-item";
+          div.dataset.id = place.id;
+
+          div.innerHTML = `
+                  <div class="place-actions">
+                      <button onclick="editExistingPlace(${
+                        place.id
+                      })" class="update-btn">ערוך</button>
+                      <button onclick="deleteExistingPlace(${
+                        place.id
+                      })" class="delete">מחק</button>
+                  </div>
+                  <h3>${place.name}</h3>
+                  <p><strong>כתובת:</strong> ${place.address}</p>
+                  <p><strong>קואורדינטות:</strong> ${place.lat}, ${
+            place.lng
+          }</p>
+                  <p><strong>קטגוריה:</strong> ${getCategoryName(
+                    place.category
+                  )}</p>
+                  <div class="description">
+                      <strong>תיאור:</strong>
+                      <div class="description-text">${
+                        place.details || "אין תיאור זמין"
+                      }</div>
+                  </div>
+              `;
+
+          container.appendChild(div);
+        });
+      }
+
+      function editExistingPlace(id) {
+        const placeIndex = places.findIndex((p) => p.id === id);
+        if (placeIndex === -1) return;
+
+        const place = places[placeIndex];
+
+        const newName = prompt("שם המקום:", place.name) || place.name;
+        const newAddress = prompt("כתובת:", place.address) || place.address;
+        const newLat = parseFloat(prompt("קו רוחב:", place.lat)) || place.lat;
+        const newLng = parseFloat(prompt("קו אורך:", place.lng)) || place.lng;
+        const newDetails = prompt("פרטים:", place.details) || place.details;
+
+        let newCategory = place.category;
+        const categoryInput = prompt(
+          `קטגוריה (הזן אחת מהאפשרויות הבאות):\nשמורים, אתר תירותי, מסעדה, בית קפה, פאב, שופינג, אחר`,
+          getCategoryName(place.category)
+        );
+
+        if (categoryInput) {
+          const categoryMap = {
+            שמורים: "lodging",
+            "אתר תירותי": "attraction",
+            מסעדה: "restaurant",
+            "בית קפה": "cafe",
+            פאב: "pub",
+            שופינג: "shopping",
+            אחר: "other",
+          };
+          newCategory = categoryMap[categoryInput] || place.category;
+        }
+
+        if (
+          confirm(`⚠️ האם אתה בטוח שברצונך לעדכן את המקום "${place.name}"?`)
+        ) {
+          places[placeIndex] = {
+            ...place,
+            name: newName,
+            address: newAddress,
+            lat: newLat,
+            lng: newLng,
+            details: newDetails,
+            category: newCategory,
+          };
+
+          saveToLocalStorage();
+          showStatus(`✅ "${newName}" עודכן בהצלחה`, false);
+        }
+      }
+
+      function deleteExistingPlace(id) {
+        const placeIndex = places.findIndex((p) => p.id === id);
+        if (placeIndex === -1) return;
+
+        const placeName = places[placeIndex].name;
+
+        if (
+          confirm(
+            `⚠️ האם אתה בטוח שברצונך למחוק את המקום "${placeName}"?\n\nפעולה זו לא ניתנת לביטול!`
+          )
+        ) {
+          places.splice(placeIndex, 1);
+          saveToLocalStorage();
+          showStatus(`🗑️ "${placeName}" נמחק בהצלחה`, false);
+        }
+      }
+
+      function updateJSONPreview() {
+        const jsonOutput = document.getElementById("json-output");
+        const jsonData = places.map((place) => {
+          const categoryMap = {
+            lodging: "lodging",
+            attraction: "attraction",
+            restaurant: "restaurant",
+            cafe: "cafe",
+            pub: "pub",
+            shopping: "shopping",
+            other: "other",
+          };
+          return {
+            id: place.id,
+            category: categoryMap[place.category] || place.category,
+            name: place.name,
+            address: place.address,
+            lat: place.lat,
+            lng: place.lng,
+            details: place.details,
+          };
+        });
+        jsonOutput.textContent = JSON.stringify(jsonData, null, 2);
+      }
+
+      function downloadJSON() {
+        if (places.length === 0) {
+          showStatus("❌ אין מקומות להורדה", true);
+          return;
+        }
+
+        let fileName = prompt("הזן שם לקובץ ה-JSON:", "places");
+        if (fileName === null || fileName.trim() === "") {
+          fileName = "places";
+        }
+
+        fileName = fileName.trim();
+        if (!fileName.toLowerCase().endsWith(".json")) {
+          fileName += ".json";
+        }
+
+        const data = document.getElementById("json-output").textContent;
+        const blob = new Blob([data], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        showStatus(`✅ קובץ ${fileName} הורד בהצלחה!`, false);
+      }
+
+      function loadFromLocalStorage() {
+        const savedPlaces = localStorage.getItem("savedPlaces");
+        if (savedPlaces) {
+          places = JSON.parse(savedPlaces);
+          if (places.length > 0) {
+            nextId = Math.max(...places.map((p) => p.id)) + 1;
+          }
+          updateJSONPreview();
+          displayExistingPlaces();
+          showStatus(`✅ נטענו ${places.length} מקומות מהזיכרון המקומי`, false);
+        }
+      }
+
+      function saveToLocalStorage() {
+        localStorage.setItem("savedPlaces", JSON.stringify(places));
+        displayExistingPlaces();
+      }
+
+      function clearLocalStorage() {
+        if (
+          confirm(
+            "⚠️ האם אתה בטוח שברצונך למחוק את כל המקומות מהזיכרון המקומי?\n\nפעולה זו לא ניתנת לביטול!"
+          )
+        ) {
+          localStorage.removeItem("savedPlaces");
+          places = [];
+          nextId = Date.now();
+          updateJSONPreview();
+          document.getElementById("existing-places-container").innerHTML = "";
+          document.getElementById("places-count").textContent = "";
+          showStatus("🧹 כל המקומות נמחקו מהזיכרון המקומי", false);
+          location.reload();
+        }
+      }
+
+      function handleFileUpload(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          try {
+            const uploadedPlaces = JSON.parse(e.target.result);
+            if (!Array.isArray(uploadedPlaces)) {
+              throw new Error("הקובץ אינו מכיל מערך של מקומות");
+            }
+            if (
+              confirm(
+                `האם אתה בטוח שברצונך להחליף את ${places.length} המקומות הקיימים ב-${uploadedPlaces.length} מקומות מהקובץ?`
+              )
+            ) {
+              places = uploadedPlaces;
+              if (places.length > 0) {
+                nextId = Math.max(...places.map((p) => p.id)) + 1;
+              }
+              saveToLocalStorage();
+              updateJSONPreview();
+              showStatus(
+                `✅ נטענו ${places.length} מקומות מהקובץ בהצלחה`,
+                false
+              );
+            }
+          } catch (error) {
+            console.error("שגיאה בטעינת הקובץ:", error);
+            showStatus(`❌ שגיאה בטעינת הקובץ: ${error.message}`, true);
+          }
+        };
+        reader.readAsText(file);
+      }
+    </script>
   </body>
 </html>
