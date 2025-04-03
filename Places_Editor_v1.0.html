@@ -486,9 +486,11 @@
       }
 
       .place-actions button {
-        padding: 0.3rem 0.6rem;
-        font-size: 0.8rem;
-        margin: 0;
+        padding: 1rem 0.6rem;
+        font-size: 1rem;
+        margin: 12px;
+        margin-top: 150px;
+        border-radius: 50%;
       }
 
       .icon {
@@ -1457,38 +1459,260 @@
           "places-count"
         ).textContent = `מציג ${placesToRender.length} מתוך ${places.length} מקומות`;
 
-        placesToRender.forEach((place, index) => {
+        placesToRender.forEach((place) => {
           const div = document.createElement("div");
           div.className = "place-item";
           div.dataset.id = place.id;
 
           div.innerHTML = `
-                  <div class="place-actions">
-                      <button onclick="editExistingPlace(${
-                        place.id
-                      })" class="update-btn">ערוך</button>
-                      <button onclick="deleteExistingPlace(${
-                        place.id
-                      })" class="delete">מחק</button>
-                  </div>
-                  <h3>${place.name}</h3>
-                  <p><strong>כתובת:</strong> ${place.address}</p>
-                  <p><strong>קואורדינטות:</strong> ${place.lat}, ${
-            place.lng
-          }</p>
-                  <p><strong>קטגוריה:</strong> ${getCategoryName(
-                    place.category
-                  )}</p>
-                  <div class="description">
-                      <strong>תיאור:</strong>
-                      <div class="description-text">${
-                        place.details || "אין תיאור זמין"
-                      }</div>
-                  </div>
-              `;
+            <div class="place-actions">
+              <button onclick="deleteExistingPlace(${
+                place.id
+              })" class="delete">מחק</button>
+            </div>
+            <h3 class="editable-field" data-field="name" data-id="${
+              place.id
+            }">${place.name}</h3>
+            <p>
+              <strong>כתובת:</strong>
+              <span class="editable-field" data-field="address" data-id="${
+                place.id
+              }">${place.address}</span>
+            </p>
+            <p>
+              <strong>קואורדינטות:</strong>
+              <span class="editable-field" data-field="lat" data-id="${
+                place.id
+              }">${place.lat}</span>,
+              <span class="editable-field" data-field="lng" data-id="${
+                place.id
+              }">${place.lng}</span>
+            </p>
+            <p>
+              <strong>קטגוריה:</strong>
+              <span class="editable-field" data-field="category" data-id="${
+                place.id
+              }">${getCategoryName(place.category)}</span>
+            </p>
+            <div class="description">
+              <strong>תיאור:</strong>
+              <div class="description-text editable-field" data-field="details" data-id="${
+                place.id
+              }">${place.details || "אין תיאור זמין"}</div>
+            </div>
+          `;
 
           container.appendChild(div);
         });
+
+        // הוספת אירועי לחיצה לשדות הניתנים לעריכה
+        document.querySelectorAll(".editable-field").forEach((field) => {
+          field.addEventListener("click", function (e) {
+            e.stopPropagation();
+            if (currentEditField && currentEditField !== this) {
+              const inputElement = currentEditField.querySelector(
+                ".edit-input, .edit-textarea, .edit-select"
+              );
+              if (inputElement) {
+                const fieldName = currentEditField.dataset.field;
+                const placeId = currentEditField.dataset.id;
+                saveExistingPlaceEdit(
+                  currentEditField,
+                  inputElement,
+                  fieldName,
+                  placeId
+                );
+              }
+            }
+            startEditExistingField(this);
+          });
+        });
+      }
+
+      function startEditExistingField(fieldElement) {
+        if (fieldElement === currentEditField) {
+          return;
+        }
+
+        if (currentEditField) {
+          const inputElement = currentEditField.querySelector(
+            ".edit-input, .edit-textarea, .edit-select"
+          );
+          if (inputElement) {
+            const fieldName = currentEditField.dataset.field;
+            const placeId = currentEditField.dataset.id;
+            saveExistingPlaceEdit(
+              currentEditField,
+              inputElement,
+              fieldName,
+              placeId
+            );
+          }
+        }
+
+        currentEditField = fieldElement;
+        const currentValue = fieldElement.textContent;
+        const fieldName = fieldElement.dataset.field;
+        const placeId = fieldElement.dataset.id;
+        const isCategory = fieldName === "category";
+        const isDetails = fieldName === "details";
+        const isCoordinates = fieldName === "lat" || fieldName === "lng";
+
+        fieldElement.dataset.originalValue = currentValue;
+        let inputElement;
+
+        if (isCategory) {
+          inputElement = document.createElement("select");
+          inputElement.className = "edit-select";
+          const categories = [
+            { value: "lodging", text: "שמורים" },
+            { value: "attraction", text: "אתר תירותי" },
+            { value: "restaurant", text: "מסעדה" },
+            { value: "cafe", text: "בית קפה" },
+            { value: "pub", text: "פאב" },
+            { value: "shopping", text: "שופינג" },
+            { value: "other", text: "אחר" },
+          ];
+
+          categories.forEach((cat) => {
+            const option = document.createElement("option");
+            option.value = cat.value;
+            option.textContent = cat.text;
+            if (currentValue === cat.text) option.selected = true;
+            inputElement.appendChild(option);
+          });
+        } else if (isDetails) {
+          inputElement = document.createElement("textarea");
+          inputElement.className = "edit-textarea";
+          inputElement.value = currentValue;
+        } else {
+          inputElement = document.createElement("input");
+          inputElement.type = isCoordinates ? "number" : "text";
+          inputElement.className = "edit-input";
+          inputElement.value = currentValue;
+        }
+
+        const saveButton = document.createElement("button");
+        saveButton.textContent = "שמור";
+        saveButton.className = "save-btn";
+
+        const cancelButton = document.createElement("button");
+        cancelButton.textContent = "ביטול";
+        cancelButton.className = "cancel-btn";
+
+        const buttonsContainer = document.createElement("div");
+        buttonsContainer.className = "save-cancel-buttons";
+        buttonsContainer.appendChild(saveButton);
+        buttonsContainer.appendChild(cancelButton);
+
+        const editContainer = document.createElement("div");
+        editContainer.className = "edit-container";
+        editContainer.appendChild(inputElement);
+        editContainer.appendChild(buttonsContainer);
+
+        fieldElement.innerHTML = "";
+        fieldElement.appendChild(editContainer);
+        inputElement.focus();
+
+        saveButton.addEventListener("click", function (e) {
+          e.stopPropagation();
+          saveExistingPlaceEdit(fieldElement, inputElement, fieldName, placeId);
+        });
+
+        cancelButton.addEventListener("click", function (e) {
+          e.stopPropagation();
+          cancelEdit(fieldElement);
+        });
+
+        inputElement.addEventListener("keydown", function (e) {
+          if (e.key === "Enter" && !isDetails) {
+            e.preventDefault();
+            saveExistingPlaceEdit(
+              fieldElement,
+              inputElement,
+              fieldName,
+              placeId
+            );
+          } else if (e.key === "Escape") {
+            e.preventDefault();
+            cancelEdit(fieldElement);
+          }
+        });
+
+        if (outsideClickHandler) {
+          document.removeEventListener("click", outsideClickHandler);
+        }
+
+        outsideClickHandler = function (e) {
+          if (!fieldElement.contains(e.target)) {
+            const inputElement = fieldElement.querySelector(
+              ".edit-input, .edit-textarea, .edit-select"
+            );
+            if (inputElement) {
+              saveExistingPlaceEdit(
+                fieldElement,
+                inputElement,
+                fieldElement.dataset.field,
+                fieldElement.dataset.id
+              );
+            }
+          }
+        };
+
+        setTimeout(() => {
+          document.addEventListener("click", outsideClickHandler);
+        }, 10);
+      }
+
+      function saveExistingPlaceEdit(
+        fieldElement,
+        inputElement,
+        fieldName,
+        placeId
+      ) {
+        let newValue;
+        if (inputElement.tagName === "SELECT") {
+          newValue = inputElement.options[inputElement.selectedIndex].text;
+        } else {
+          newValue = inputElement.value
+            .replace(/\\r\\n/g, "\n")
+            .replace(/\\n/g, "\n")
+            .replace(/\r\n/g, "\n")
+            .replace(/\n/g, "\n");
+        }
+
+        fieldElement.textContent = newValue;
+        fieldElement.addEventListener("click", function (e) {
+          e.stopPropagation();
+          startEditExistingField(this);
+        });
+
+        const placeIndex = places.findIndex((p) => p.id == placeId);
+        if (placeIndex === -1) return;
+
+        if (fieldName === "name") {
+          places[placeIndex].name = newValue;
+        } else if (fieldName === "address") {
+          places[placeIndex].address = newValue;
+        } else if (fieldName === "lat") {
+          places[placeIndex].lat = parseFloat(newValue) || 0;
+        } else if (fieldName === "lng") {
+          places[placeIndex].lng = parseFloat(newValue) || 0;
+        } else if (fieldName === "category") {
+          places[placeIndex].category = inputElement.value;
+        } else if (fieldName === "details") {
+          places[placeIndex].details = newValue;
+        }
+
+        saveToLocalStorage();
+        updateJSONPreview();
+
+        if (outsideClickHandler) {
+          document.removeEventListener("click", outsideClickHandler);
+          outsideClickHandler = null;
+        }
+
+        currentEditField = null;
       }
 
       function editExistingPlace(id) {
