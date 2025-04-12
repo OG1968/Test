@@ -1,0 +1,1542 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/x-icon" href="loto.png" />
+    <meta name="application-name" content="מנתח לוטו" />
+    <title>מנתח תוצאות לוטו</title>
+    <style>
+      :root {
+        --primary-color: #1a5276;
+        --secondary-color: #e74c3c;
+        --light-blue: #e8f4f8;
+        --light-gray: #c4ecff;
+        --white: #ffffff;
+        --text-color: #333333;
+      }
+
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: var(--light-gray);
+        color: var(--text-color);
+        background-image: url("lotobackground.png");
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+        background-size: 100% 100%;
+      }
+
+      h1,
+      h2,
+      h3 {
+        color: var(--primary-color);
+        margin-top: 0px;
+        margin-bottom: 10px;
+        text-align: center;
+      }
+
+      h1 {
+        font-size: 3em;
+        margin-top: 10px;
+        line-height: 0em;
+      }
+
+      h2 {
+        line-height: 0.8em;
+      }
+
+      h3 {
+        margin-bottom: 20px;
+        line-height: 0.5em;
+      }
+
+      .container {
+        background-color: var(--white);
+        border-radius: 20px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 5px rgba(0, 0, 0, 1);
+      }
+
+      .chart-container {
+        height: 300px;
+        margin-top: 20px;
+        position: relative;
+      }
+
+      .file-upload {
+        border: 2px dashed var(--primary-color);
+        border-radius: 8px;
+        padding: 30px;
+        text-align: center;
+        margin-bottom: 20px;
+        background-color: #f8f9fa;
+        transition: all 0.3s ease;
+      }
+
+      .file-upload:hover {
+        background-color: var(--light-blue);
+        transform: translateY(-2px);
+      }
+
+      button {
+        background-color: var(--primary-color);
+        color: var(--white);
+        border: none;
+        padding: 12px 24px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+        margin-top: 10px;
+        transition: all 0.3s ease;
+      }
+
+      button:hover {
+        background-color: #154360;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      }
+
+      th,
+      td {
+        border: 1px solid #ddd;
+        padding: 12px;
+        text-align: center;
+      }
+
+      th {
+        background-color: var(--primary-color);
+        color: var(--white);
+        font-weight: bold;
+      }
+
+      tr:nth-child(even) {
+        background-color: #f2f2f2;
+      }
+
+      tr:hover {
+        background-color: #e6e6e6;
+      }
+
+      .number-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+        gap: 10px;
+        margin-top: 20px;
+      }
+
+      .number-item {
+        padding: 10px;
+        background-color: var(--light-blue);
+        border-radius: 4px;
+        text-align: center;
+        transition: all 0.3s ease;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      }
+
+      .number-item:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+      }
+
+      .number-item strong {
+        display: block;
+        font-size: 1.2em;
+        margin-bottom: 5px;
+        color: var(--primary-color);
+      }
+
+      .tab {
+        overflow: hidden;
+        border: 1px solid #ccc;
+        background-color: #f1f1f1;
+        border-radius: 4px 4px 0 0;
+        display: flex;
+        flex-wrap: wrap;
+      }
+
+      .tab button {
+        background-color: inherit;
+        border: none;
+        outline: none;
+        cursor: pointer;
+        padding: 14px 16px;
+        transition: 0.3s;
+        font-size: 16px;
+        color: var(--primary-color);
+        margin-top: 0;
+        flex: 1;
+        min-width: 120px;
+      }
+
+      .tab button:hover {
+        background-color: #ddd;
+      }
+
+      .tab button.active {
+        background-color: var(--primary-color);
+        color: var(--white);
+      }
+
+      .tabcontent {
+        display: none;
+        padding: 20px;
+        border: 1px solid #ccc;
+        border-top: none;
+        border-radius: 0 0 4px 4px;
+        animation: fadeEffect 0.5s;
+      }
+
+      @keyframes fadeEffect {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+
+      #loadingOverlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(255, 255, 255, 0.9);
+        z-index: 1000;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        backdrop-filter: blur(3px);
+      }
+
+      .spinner {
+        border: 8px solid #f3f3f3;
+        border-top: 8px solid var(--primary-color);
+        border-radius: 50%;
+        width: 60px;
+        height: 60px;
+        animation: spin 1s linear infinite;
+        margin-bottom: 20px;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .combination-section {
+        margin-bottom: 30px;
+        overflow-x: auto;
+      }
+
+      .no-data {
+        color: #888;
+        font-style: italic;
+        text-align: center;
+        padding: 20px;
+      }
+
+      .recommendation-card {
+        background-color: var(--light-blue);
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+      }
+
+      .recommendation-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+      }
+
+      .recommendation-numbers {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin: 15px 0;
+        justify-content: center;
+      }
+
+      .main-number {
+        background-color: var(--primary-color);
+        color: var(--white);
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 1.1em;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .bonus-number {
+        background-color: var(--secondary-color);
+        color: var(--white);
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 1.1em;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      /* הוספת מדיה קווריז עבור מסכים קטנים */
+      @media (max-width: 768px) {
+        body {
+          padding: 10px;
+        }
+
+        .container {
+          padding: 15px;
+        }
+
+        .file-upload {
+          padding: 20px;
+        }
+
+        .tab button {
+          padding: 10px 12px;
+          font-size: 14px;
+          min-width: auto;
+        }
+
+        .number-grid {
+          grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+        }
+
+        .number-item {
+          padding: 8px;
+          font-size: 0.9em;
+        }
+
+        .recommendation-card {
+          padding: 15px;
+        }
+
+        .main-number,
+        .bonus-number {
+          width: 35px;
+          height: 35px;
+          font-size: 1em;
+        }
+
+        table {
+          font-size: 0.9em;
+        }
+
+        th,
+        td {
+          padding: 8px;
+        }
+
+        .chart-container {
+          height: 250px;
+        }
+
+        h1 {
+          font-size: 2.2em;
+        }
+
+        h3 {
+          margin-bottom: 20px;
+          line-height: 1;
+        }
+      }
+
+      @media (max-width: 360px) {
+        h1 {
+          font-size: 2em;
+        }
+
+        h2 {
+          font-size: 1em;
+          line-height: 1em;
+        }
+
+        h3 {
+          font-size: 1.1em;
+          margin-bottom: 10px;
+          line-height: 1.5em;
+        }
+
+        .number-grid {
+          grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+        }
+
+        .number-item strong {
+          font-size: 1em;
+        }
+
+        .tab button {
+          font-size: 12px;
+          padding: 8px 10px;
+        }
+
+        .main-number,
+        .bonus-number {
+          width: 30px;
+          height: 30px;
+          font-size: 0.9em;
+        }
+
+        .chart-container {
+          height: 200px;
+        }
+      }
+
+      /* אנימציות נוספות */
+      @keyframes float {
+        0% {
+          transform: translateY(0px);
+        }
+        50% {
+          transform: translateY(-5px);
+        }
+        100% {
+          transform: translateY(0px);
+        }
+      }
+
+      .floating {
+        animation: float 3s ease-in-out infinite;
+      }
+
+      /* הודעת טיפ */
+      .tooltip {
+        position: relative;
+        display: inline-block;
+        cursor: pointer;
+      }
+
+      .tooltip .tooltiptext {
+        visibility: hidden;
+        width: 200px;
+        background-color: #555;
+        color: #fff;
+        text-align: center;
+        border-radius: 6px;
+        padding: 5px;
+        position: absolute;
+        z-index: 1;
+        bottom: 125%;
+        left: 50%;
+        margin-left: -100px;
+        opacity: 0;
+        transition: opacity 0.3s;
+      }
+
+      .tooltip:hover .tooltiptext {
+        visibility: visible;
+        opacity: 1;
+      }
+
+      .file-upload-container {
+        text-align: center;
+        margin-bottom: 25px;
+      }
+
+      .file-upload-label {
+        display: block;
+        border: 2px dashed var(--primary-color);
+        border-radius: 8px;
+        padding: 30px;
+        background-color: rgba(26, 82, 118, 0.05);
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-bottom: 15px;
+      }
+
+      .file-upload-label:hover {
+        background-color: rgba(26, 82, 118, 0.1);
+        border-color: var(--primary-color-dark);
+        transform: translateY(-2px);
+      }
+
+      .file-upload-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+      }
+
+      .file-upload-text {
+        font-size: 1.1em;
+        color: var(--primary-color);
+        margin: 0;
+        font-weight: 500;
+      }
+
+      .file-upload-hint {
+        font-size: 0.9em;
+        color: #666;
+        margin: 0;
+      }
+
+      .file-upload-input {
+        display: none;
+      }
+
+      .analyze-button {
+        background-color: var(--primary-color);
+        color: white;
+        border: none;
+        padding: 12px 30px;
+        border-radius: 6px;
+        font-size: 1em;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 2);
+      }
+
+      .analyze-button:hover {
+        background-color: rgb(0, 87, 0);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+      }
+
+      .analyze-button:disabled {
+        background-color: #cccccc;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+      }
+
+      /* התאמות למסכים קטנים */
+      @media (max-width: 768px) {
+        .file-upload-label {
+          padding: 20px;
+        }
+
+        .file-upload-text {
+          font-size: 1em;
+        }
+        .analyze-button {
+          padding: 10px 25px;
+          font-size: 0.95em;
+        }
+        .header-container {
+          flex-direction: column;
+          padding: 0px;
+        }
+        .logo {
+          margin-top: 0px;
+        }
+      }
+
+      .logo {
+        width: 60px;
+        height: 60px;
+      }
+
+      .header-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        text-align: center;
+      }
+
+      /* סגנונות חדשים להצגת ההגרלה האחרונה */
+      #lastDrawResults {
+        animation: fadeIn 0.5s ease-out;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      #lastDrawContent {
+        text-align: center;
+      }
+
+      #lastDrawContent h4 {
+        margin-bottom: 10px;
+        color: var(--primary-color);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="loadingOverlay">
+      <div class="spinner floating"></div>
+      <h2>מעבד נתונים...</h2>
+      <p id="loadingStatus">מכין לעיבוד נתונים...</p>
+    </div>
+
+    <div class="container">
+      <div class="header-container">
+        <img src="loto.png" alt="לוגו לוטו" class="logo" />
+        <h1>מנתח תוצאות לוטו</h1>
+      </div>
+      <div class="file-upload-container">
+        <h3>העלה קובץ CSV של תוצאות הלוטו</h3>
+        <label for="csvFile" class="file-upload-label">
+          <div class="file-upload-content">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="48"
+              height="48"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#1a5276"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            <p class="file-upload-text">
+              גרור לכאן את הקובץ או לחץ לבחירת קובץ
+            </p>
+            <p class="file-upload-hint">רק קבצי CSV נתמכים</p>
+          </div>
+          <input
+            type="file"
+            id="csvFile"
+            accept=".csv"
+            class="file-upload-input"
+          />
+        </label>
+        <button id="analyzeBtn" class="analyze-button">נתח נתונים</button>
+      </div>
+      <p style="text-align: center; color: #666; margin-top: 10px">
+        <small
+          >העלה קובץ CSV עם תוצאות היסטוריות של הלוטו לקבלת ניתוח סטטיסטי מתקדם,
+          קובץ עדכני ניתן להורדה בקישור הבא:<br />
+          <a href="https://www.pais.co.il/lotto/lotto_resultsDownload.aspx"
+            >קובץ תוצאות הגרלות עדכני</a
+          ></small
+        >
+      </p>
+    </div>
+
+    <!-- אזור חדש להצגת ההגרלה האחרונה -->
+    <div
+      id="lastDrawResults"
+      class="container"
+      style="display: none; margin-top: 20px"
+    >
+      <h3>הגרלה אחרונה</h3>
+      <div id="lastDrawContent"></div>
+    </div>
+
+    <div id="results" style="display: none">
+      <div class="tab">
+        <button class="tablinks active" onclick="openTab(event, 'numberStats')">
+          הסתברות המספרים
+        </button>
+        <button class="tablinks" onclick="openTab(event, 'combinations')">
+          צירופים נפוצים
+        </button>
+        <button class="tablinks" onclick="openTab(event, 'bonusNumbers')">
+          מספרים נוספים
+        </button>
+        <button class="tablinks" onclick="openTab(event, 'recommendations')">
+          המלצות
+        </button>
+      </div>
+
+      <div id="numberStats" class="tabcontent" style="display: block">
+        <div class="container">
+          <h2>הסתברות הופעת מספרים בהגרלה</h2>
+          <div class="chart-container">
+            <canvas id="numberChart"></canvas>
+          </div>
+          <div id="numberGrid" class="number-grid"></div>
+        </div>
+      </div>
+
+      <div id="combinations" class="tabcontent">
+        <div class="container">
+          <h2>צירופי מספרים נפוצים</h2>
+
+          <div class="combination-section">
+            <h3>צמדים נפוצים (2 מספרים)</h3>
+            <div id="pairsTable"></div>
+          </div>
+
+          <div class="combination-section">
+            <h3>שלשות נפוצות (3 מספרים)</h3>
+            <div id="triplesTable"></div>
+          </div>
+
+          <div class="combination-section">
+            <h3>רביעיות נפוצות (4 מספרים)</h3>
+            <div id="quadsTable"></div>
+          </div>
+
+          <div class="combination-section">
+            <h3>חמישיות נפוצות (5 מספרים)</h3>
+            <div id="quintsTable"></div>
+          </div>
+
+          <div class="combination-section">
+            <h3>שישיות נפוצות (6 מספרים)</h3>
+            <div id="fullCombinationsTable"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="bonusNumbers" class="tabcontent">
+        <div class="container">
+          <h2>הסתברות למספרים נוספים (1-7)</h2>
+          <div class="chart-container">
+            <canvas id="bonusChart"></canvas>
+          </div>
+          <div id="bonusGrid" class="number-grid"></div>
+        </div>
+      </div>
+
+      <div id="recommendations" class="tabcontent">
+        <div class="container">
+          <h2>המלצות לצירופים לפי הסתברויות</h2>
+          <p style="text-align: center; color: #666; margin-bottom: 20px">
+            <small
+              >ההמלצות מבוססות על ניתוח סטטיסטי של הופעות מספרים וצירופים</small
+            >
+          </p>
+
+          <div id="recommendationsContainer">
+            <!-- כאן יוצגו ההמלצות -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.5.1/chart.min.js"></script>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        // קבלת אלמנטים מהדף
+        const csvFile = document.getElementById("csvFile");
+        const analyzeBtn = document.getElementById("analyzeBtn");
+        const resultsDiv = document.getElementById("results");
+        const loadingOverlay = document.getElementById("loadingOverlay");
+
+        // הוספת מידע סטטוס לאנימציית הטעינה
+        const loadingStatus = document.getElementById("loadingStatus");
+
+        // טעינת נתוני ההגרלה האחרונה
+        fetchLastDraw();
+
+        // הוספת מאזין אירועים לכפתור הניתוח
+        analyzeBtn.addEventListener("click", function () {
+          if (csvFile.files.length === 0) {
+            alert("נא לבחור קובץ CSV");
+            return;
+          }
+
+          // הצגת מסך הטעינה
+          loadingOverlay.style.display = "flex";
+          loadingStatus.textContent = "מכין לקריאת קובץ...";
+
+          // טיימר אבטחה להסרת מסך הטעינה אם העיבוד נתקע
+          const safetyTimer = setTimeout(function () {
+            if (loadingOverlay.style.display === "flex") {
+              loadingOverlay.style.display = "none";
+              alert(
+                "העיבוד נמשך זמן רב מדי. ייתכן שהקובץ גדול מדי או שיש תקלה בפורמט הנתונים."
+              );
+            }
+          }, 60000); // 60 שניות טיימאאוט
+
+          // ניתוח הקובץ CSV
+          Papa.parse(csvFile.files[0], {
+            complete: function (results) {
+              try {
+                console.log("נתוני CSV התקבלו:", results.data.slice(0, 5)); // הוספת לוג של 5 שורות ראשונות
+
+                loadingStatus.textContent = "מעבד נתונים...";
+
+                // עיבוד הנתונים
+                const processedData = processData(results.data);
+                console.log(
+                  "נתונים לאחר עיבוד:",
+                  processedData.length,
+                  "הגרלות"
+                );
+
+                if (processedData.length === 0) {
+                  throw new Error(
+                    "לא נמצאו נתוני הגרלות בקובץ. בדוק את הפורמט."
+                  );
+                }
+
+                // חישוב הסטטיסטיקות בצורה מדורגת
+                calculateStatsInBatches(processedData, function (stats) {
+                  // הצגת התוצאות
+                  renderResults(stats);
+
+                  // הצגת אזור התוצאות
+                  resultsDiv.style.display = "block";
+
+                  // הסרת מסך טעינה והטיימר
+                  loadingOverlay.style.display = "none";
+                  clearTimeout(safetyTimer);
+                });
+              } catch (error) {
+                console.error("שגיאה בעיבוד הנתונים:", error);
+                alert("אירעה שגיאה בעיבוד הנתונים: " + error.message);
+
+                // הסרת מסך טעינה והטיימר בכל מקרה של שגיאה
+                loadingOverlay.style.display = "none";
+                clearTimeout(safetyTimer);
+              }
+            },
+            error: function (error) {
+              console.error("שגיאה בקריאת הקובץ:", error);
+              loadingOverlay.style.display = "none";
+              clearTimeout(safetyTimer);
+              alert("שגיאה בקריאת הקובץ: " + error.message);
+            },
+          });
+        });
+
+        // פונקציה לקבלת נתוני ההגרלה האחרונה
+        function fetchLastDraw() {
+          const lastDrawContainer = document.getElementById("lastDrawResults");
+          const lastDrawContent = document.getElementById("lastDrawContent");
+
+          // הצגת הודעת טעינה
+          lastDrawContent.innerHTML = "<p>טוען נתוני הגרלה אחרונה...</p>";
+          lastDrawContainer.style.display = "block";
+
+          // שימוש ב-CORS proxy כדי לעקוף מגבלות CORS
+          const proxyUrl = "https://cors-anywhere.herokuapp.com/";
+          const targetUrl = "https://www.pais.co.il/rssfeed.ashx?lottery=lotto";
+
+          fetch(proxyUrl + targetUrl)
+            .then((response) => response.text())
+            .then((str) => {
+              const parser = new DOMParser();
+              const xmlDoc = parser.parseFromString(str, "text/xml");
+
+              // מציאת האייטם הראשון
+              const item = xmlDoc.querySelector("item");
+              if (!item) {
+                throw new Error("לא נמצאו נתוני הגרלה");
+              }
+
+              // חילוץ הנתונים מהאייטם
+              const title = item.querySelector("title").textContent;
+              const pubDate = item.querySelector("pubDate").textContent;
+              const description = item.querySelector("description").textContent;
+
+              // עיבוד התיאור כדי לחלץ את המספרים
+              const numbersMatch = description.match(
+                /(\d{1,2}(?:\s*,\s*\d{1,2})*)/
+              );
+              if (!numbersMatch) {
+                throw new Error("לא ניתן לזהות מספרים בתיאור");
+              }
+
+              const numbers = numbersMatch[0]
+                .split(",")
+                .map((num) => parseInt(num.trim()));
+              const bonusMatch = description.match(
+                /מספר\s*נוסף\s*:\s*(\d{1,2})/i
+              );
+              const bonusNumber = bonusMatch ? parseInt(bonusMatch[1]) : null;
+
+              // הצגת הנתונים
+              lastDrawContent.innerHTML = `
+                      <p><strong>${title}</strong></p>
+                      <p>תאריך: ${new Date(pubDate).toLocaleString("he-IL")}</p>
+                      <div style="margin: 15px 0;">
+                          <h4>המספרים הזוכים:</h4>
+                          <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;">
+                              ${
+                                bonusNumber
+                                  ? `<div class="bonus-number">${bonusNumber}</div>`
+                                  : ""
+                              }
+                          </div>
+                      </div>
+                      <p><small>${description.replace(
+                        /<br\s*\/?>/gi,
+                        "\n"
+                      )}</small></p>
+                  `;
+            })
+            .catch((error) => {
+              console.error("שגיאה בטעינת נתוני ההגרלה:", error);
+              lastDrawContent.innerHTML = `<p style="color: var(--secondary-color);">לא ניתן לטעון את נתוני ההגרלה האחרונה: ${error.message}</p>`;
+            });
+        }
+
+        // פונקציה לעיבוד הנתונים
+        function processData(data) {
+          console.log("התחלת עיבוד נתונים, סך שורות:", data.length);
+
+          // ניקוי נתונים - הסרת שורות ריקות בסוף
+          while (
+            data.length > 0 &&
+            data[data.length - 1].every((cell) => !cell || cell.trim() === "")
+          ) {
+            data.pop();
+          }
+
+          // בדיקה שיש לפחות כותרת ושורת נתונים אחת
+          if (data.length < 2) {
+            throw new Error("קובץ הנתונים ריק או לא מכיל מספיק נתונים");
+          }
+
+          // מציאת השורה הראשונה עם נתונים מספריים
+          let startRow = 1;
+          while (startRow < data.length && !isNumeric(data[startRow][0])) {
+            startRow++;
+          }
+
+          // אם לא נמצאה שורה עם נתונים מספריים
+          if (startRow >= data.length) {
+            throw new Error("לא נמצאו נתוני הגרלות בפורמט הנכון");
+          }
+
+          console.log("מספר שורות חוקיות לעיבוד:", data.length - startRow);
+
+          // החזרת הנתונים המנוקים
+          return data.slice(startRow).filter((row) => row.length >= 9);
+        }
+
+        // פונקציה לבדיקה אם ערך הוא מספרי
+        function isNumeric(value) {
+          return !isNaN(parseFloat(value)) && isFinite(value);
+        }
+
+        // פונקציה לחישוב סטטיסטיקות בצורה מדורגת
+        function calculateStatsInBatches(draws, onComplete) {
+          console.log("התחלת חישוב סטטיסטיקות על", draws.length, "הגרלות");
+          loadingStatus.textContent = "מחשב סטטיסטיקות בסיסיות...";
+
+          // אתחול אובייקטים לספירה
+          const numberCounts = {};
+          const bonusCounts = {};
+
+          // אתחול ספירות למספרים
+          for (let i = 1; i <= 37; i++) numberCounts[i] = 0;
+          for (let i = 1; i <= 7; i++) bonusCounts[i] = 0;
+
+          // יצירת מפות לצירופים שונים
+          const pairsMap = new Map();
+          const triplesMap = new Map();
+          const quadsMap = new Map();
+          const quintsMap = new Map();
+          const fullCombinationsMap = new Map();
+
+          let prevCombinationKey = null;
+
+          // התחלת עיבוד מדורג של ההגרלות
+          setTimeout(() => processDrawsBatch(0), 0);
+
+          function processDrawsBatch(startIndex) {
+            const batchSize = 50; // גודל קבוצה של הגרלות לעיבוד בכל פעם
+            const endIndex = Math.min(startIndex + batchSize, draws.length);
+
+            loadingStatus.textContent = `מעבד הגרלות ${
+              startIndex + 1
+            } עד ${endIndex} מתוך ${draws.length}...`;
+
+            // עיבוד כל ההגרלות בקבוצה הנוכחית
+            for (let i = startIndex; i < endIndex; i++) {
+              processDrawData(draws[i]);
+            }
+
+            // אם סיימנו את כל ההגרלות
+            if (endIndex >= draws.length) {
+              loadingStatus.textContent = "מחשב המלצות והסתברויות...";
+
+              // חישוב הסתברויות
+              setTimeout(() => calculateProbabilities(), 0);
+            } else {
+              // המשך לקבוצה הבאה
+              setTimeout(() => processDrawsBatch(endIndex), 0);
+            }
+          }
+
+          function processDrawsBatch(startIndex) {
+            const batchSize = 50; // גודל קבוצה של הגרלות לעיבוד בכל פעם
+            const endIndex = Math.min(startIndex + batchSize, draws.length);
+
+            loadingStatus.textContent = `מעבד הגרלות ${
+              startIndex + 1
+            } עד ${endIndex} מתוך ${draws.length}...`;
+
+            // עיבוד כל ההגרלות בקבוצה הנוכחית
+            for (let i = startIndex; i < endIndex; i++) {
+              processDrawData(draws[i]);
+            }
+
+            // אם סיימנו את כל ההגרלות
+            if (endIndex >= draws.length) {
+              loadingStatus.textContent = "מחשב המלצות והסתברויות...";
+
+              // חישוב הסתברויות
+              setTimeout(() => calculateProbabilities(), 0);
+            } else {
+              // המשך לקבוצה הבאה
+              setTimeout(() => processDrawsBatch(endIndex), 0);
+            }
+          }
+
+          // פונקציה לעיבוד נתוני הגרלה בודדת
+          function processDrawData(draw) {
+            // קבלת המספרים המנצחים
+            const winningNumbers = [
+              parseInt(draw[2]),
+              parseInt(draw[3]),
+              parseInt(draw[4]),
+              parseInt(draw[5]),
+              parseInt(draw[6]),
+              parseInt(draw[7]),
+            ]
+              .filter((num) => !isNaN(num) && num >= 1 && num <= 37)
+              .sort((a, b) => a - b);
+
+            // בדיקה שיש 6 מספרים תקינים
+            if (winningNumbers.length !== 6) {
+              console.warn("מספר לא תקין של מספרי הגרלה:", winningNumbers);
+              return;
+            }
+
+            const combinationKey = winningNumbers.join("-");
+
+            // דילוג על כפילויות עוקבות
+            if (combinationKey === prevCombinationKey) return;
+            prevCombinationKey = combinationKey;
+
+            // ספירת מספרים בודדים
+            winningNumbers.forEach((num) => numberCounts[num]++);
+
+            // ספירת המספר הנוסף
+            const bonusNumber = parseInt(draw[8]);
+            if (!isNaN(bonusNumber) && bonusNumber >= 1 && bonusNumber <= 7) {
+              bonusCounts[bonusNumber]++;
+            }
+
+            // עיבוד צירופים
+            processDrawCombinations(winningNumbers, draw[1]);
+          }
+
+          // פונקציה לעיבוד צירופים מהגרלה בודדת
+          function processDrawCombinations(winningNumbers, drawDate) {
+            // צמדים (2)
+            generateAndCountCombinations(winningNumbers, 2, pairsMap, drawDate);
+
+            // שלשות (3)
+            generateAndCountCombinations(
+              winningNumbers,
+              3,
+              triplesMap,
+              drawDate
+            );
+
+            // רביעיות (4)
+            generateAndCountCombinations(winningNumbers, 4, quadsMap, drawDate);
+
+            // חמישיות (5)
+            generateAndCountCombinations(
+              winningNumbers,
+              5,
+              quintsMap,
+              drawDate
+            );
+
+            // צירוף מלא (6)
+            const key = winningNumbers.join("-");
+            if (!fullCombinationsMap.has(key)) {
+              fullCombinationsMap.set(key, {
+                numbers: winningNumbers,
+                count: 1,
+                dates: [drawDate],
+              });
+            } else {
+              const entry = fullCombinationsMap.get(key);
+              entry.count++;
+              entry.dates.push(drawDate);
+            }
+          }
+          // פונקציה יעילה יותר ליצירת וספירת צירופים
+          function generateAndCountCombinations(
+            numbers,
+            k,
+            targetMap,
+            drawDate
+          ) {
+            const n = numbers.length;
+            const combinationIndices = Array(k)
+              .fill(0)
+              .map((_, i) => i);
+
+            while (true) {
+              // יצירת הצירוף הנוכחי
+              const currentCombination = combinationIndices
+                .map((i) => numbers[i])
+                .sort((a, b) => a - b);
+              const key = currentCombination.join("-");
+
+              // עדכון המפה
+              if (!targetMap.has(key)) {
+                targetMap.set(key, {
+                  numbers: currentCombination,
+                  count: 1,
+                  dates: [drawDate],
+                });
+              } else {
+                const entry = targetMap.get(key);
+                entry.count++;
+                entry.dates.push(drawDate);
+              }
+
+              // מציאת הצירוף הבא לקסיקוגרפית
+              let i = k - 1;
+              while (i >= 0 && combinationIndices[i] === n - k + i) {
+                i--;
+              }
+
+              if (i < 0) break; // סיימנו את כל הצירופים
+
+              combinationIndices[i]++;
+              for (let j = i + 1; j < k; j++) {
+                combinationIndices[j] = combinationIndices[j - 1] + 1;
+              }
+            }
+          }
+
+          // חישוב הסתברויות וסיום
+          function calculateProbabilities() {
+            // חישוב הסתברויות
+            const totalDraws = Array.from(fullCombinationsMap.values()).reduce(
+              (sum, c) => sum + c.count,
+              0
+            );
+
+            const numberProbabilities = {};
+            for (const num in numberCounts) {
+              numberProbabilities[num] = numberCounts[num] / totalDraws;
+            }
+
+            const bonusProbabilities = {};
+            for (const num in bonusCounts) {
+              bonusProbabilities[num] = bonusCounts[num] / totalDraws;
+            }
+
+            // פונקציה לסינון צירופים
+            const filterCombinations = (combinations, minCount = 2) => {
+              const filtered = combinations.filter((c) => c.count >= minCount);
+              return filtered.length > 0 ? filtered.slice(0, 10) : null;
+            };
+
+            // יצירת המלצות
+            loadingStatus.textContent = "מחשב המלצות אופטימליות...";
+            setTimeout(() => {
+              const recommendations = generateRecommendations(
+                numberProbabilities,
+                bonusProbabilities
+              );
+
+              // הכנת האובייקט הסופי עם תוצאות הניתוח
+              const stats = {
+                numberCounts,
+                numberProbabilities,
+                bonusCounts,
+                bonusProbabilities,
+                topPairs: filterCombinations(
+                  Array.from(pairsMap.values()).sort(
+                    (a, b) => b.count - a.count
+                  )
+                ),
+                topTriples: filterCombinations(
+                  Array.from(triplesMap.values()).sort(
+                    (a, b) => b.count - a.count
+                  )
+                ),
+                topQuads: filterCombinations(
+                  Array.from(quadsMap.values()).sort(
+                    (a, b) => b.count - a.count
+                  )
+                ),
+                topQuints: filterCombinations(
+                  Array.from(quintsMap.values()).sort(
+                    (a, b) => b.count - a.count
+                  )
+                ),
+                topFullCombinations: filterCombinations(
+                  Array.from(fullCombinationsMap.values()).sort(
+                    (a, b) => b.count - a.count
+                  )
+                ),
+                recommendations,
+                totalDraws,
+              };
+
+              console.log("סיום חישוב סטטיסטיקות, מעביר לרינדור");
+              onComplete(stats);
+            }, 0);
+          }
+
+          // פונקציה ליצירת המלצות
+          function generateRecommendations(
+            numberProbabilities,
+            bonusProbabilities
+          ) {
+            const recommendations = [];
+            const usedNumbers = new Set(); // מספרים שנבחרו בכל ההמלצות
+
+            // מיון המספרים לפי ההסתברות
+            const sortedNumbers = Object.entries(numberProbabilities)
+              .sort((a, b) => b[1] - a[1])
+              .map(([num]) => parseInt(num));
+
+            // מיון המספרים הנוספים
+            const sortedBonusNumbers = Object.entries(bonusProbabilities)
+              .sort((a, b) => b[1] - a[1])
+              .map(([num]) => parseInt(num));
+
+            // יצירת עד 10 המלצות (פחות אם נגמרו המספרים האפשריים)
+            let recommendationCount = 0;
+            let availableNumbers = [...sortedNumbers]; // העתק של המספרים הממוינים
+
+            while (recommendationCount < 10 && availableNumbers.length >= 6) {
+              // בחירת 6 המספרים הכי סבירים שנותרו
+              const selectedNumbers = availableNumbers
+                .slice(0, 6)
+                .sort((a, b) => a - b);
+
+              // הסרת המספרים שנבחרו מהרשימה הזמינה
+              availableNumbers = availableNumbers.filter(
+                (num) => !selectedNumbers.includes(num)
+              );
+
+              // בחירת מספר בונוס
+              let bonusNumber = null;
+              for (const bonus of sortedBonusNumbers) {
+                if (!usedNumbers.has(bonus)) {
+                  bonusNumber = bonus;
+                  usedNumbers.add(bonus); // שמירת המספר הנוסף כבר בשימוש
+                  break;
+                }
+              }
+
+              // אם לא נמצא מספר בונוס פנוי, משתמשים בראשון
+              if (bonusNumber === null && sortedBonusNumbers.length > 0) {
+                bonusNumber = sortedBonusNumbers[0];
+              }
+
+              // הוספת ההמלצה אם יש מספר בונוס
+              if (bonusNumber !== null) {
+                recommendations.push({
+                  numbers: selectedNumbers,
+                  bonus: bonusNumber,
+                });
+                recommendationCount++;
+              } else {
+                // אם אין מספרי בונוס זמינים, נפסיק
+                break;
+              }
+            }
+
+            return recommendations;
+          }
+        }
+
+        // פונקציות להצגת התוצאות
+        function renderResults(stats) {
+          console.log("מתחיל רינדור תוצאות");
+          renderNumbersChart(stats);
+          renderNumberGrid(stats);
+          renderBonusChart(stats);
+          renderBonusGrid(stats);
+          renderCombinationTables(stats);
+          renderRecommendations(stats.recommendations);
+          console.log("סיום רינדור תוצאות");
+        }
+
+        function renderNumbersChart(stats) {
+          const ctx = document.getElementById("numberChart").getContext("2d");
+          const labels = Object.keys(stats.numberProbabilities)
+            .map(Number)
+            .sort((a, b) => a - b);
+          const data = labels.map((num) => stats.numberProbabilities[num]);
+
+          new Chart(ctx, {
+            type: "bar",
+            data: {
+              labels: labels,
+              datasets: [
+                {
+                  label: "הסתברות הופעה",
+                  data: data,
+                  backgroundColor: "rgba(26, 82, 118, 0.7)",
+                  borderColor: "rgb(26, 82, 118)",
+                  borderWidth: 1,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  max: Math.max(...data) * 1.1,
+                  title: {
+                    display: true,
+                    text: "הסתברות",
+                  },
+                },
+                x: {
+                  title: {
+                    display: true,
+                    text: "מספר",
+                  },
+                },
+              },
+              plugins: {
+                legend: {
+                  display: false,
+                },
+                tooltip: {
+                  callbacks: {
+                    label: function (context) {
+                      return `הסתברות: ${(context.raw * 100).toFixed(2)}%`;
+                    },
+                  },
+                },
+              },
+            },
+          });
+        }
+
+        function renderNumberGrid(stats) {
+          const grid = document.getElementById("numberGrid");
+          grid.innerHTML = "";
+
+          for (let i = 1; i <= 37; i++) {
+            const div = document.createElement("div");
+            div.className = "number-item";
+            div.innerHTML = `
+                  <strong>${i}</strong>
+                  <div>${stats.numberCounts[i]} הופעות (${(
+              stats.numberProbabilities[i] * 100
+            ).toFixed(2)}%)</div>
+              `;
+            grid.appendChild(div);
+          }
+        }
+
+        function renderBonusChart(stats) {
+          const ctx = document.getElementById("bonusChart").getContext("2d");
+          const labels = Object.keys(stats.bonusProbabilities)
+            .map(Number)
+            .sort((a, b) => a - b);
+          const data = labels.map((num) => stats.bonusProbabilities[num]);
+
+          new Chart(ctx, {
+            type: "bar",
+            data: {
+              labels: labels,
+              datasets: [
+                {
+                  label: "הסתברות הופעה",
+                  data: data,
+                  backgroundColor: "rgba(231, 76, 60, 0.7)",
+                  borderColor: "rgb(231, 76, 60)",
+                  borderWidth: 1,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  max: Math.max(...data) * 1.1,
+                  title: {
+                    display: true,
+                    text: "הסתברות",
+                  },
+                },
+                x: {
+                  title: {
+                    display: true,
+                    text: "מספר נוסף",
+                  },
+                },
+              },
+              plugins: {
+                legend: {
+                  display: false,
+                },
+                tooltip: {
+                  callbacks: {
+                    label: function (context) {
+                      return `הסתברות: ${(context.raw * 100).toFixed(2)}%`;
+                    },
+                  },
+                },
+              },
+            },
+          });
+        }
+
+        function renderBonusGrid(stats) {
+          const grid = document.getElementById("bonusGrid");
+          grid.innerHTML = "";
+
+          for (let i = 1; i <= 7; i++) {
+            const div = document.createElement("div");
+            div.className = "number-item";
+            div.innerHTML = `
+                  <strong>${i}</strong>
+                  <div>${stats.bonusCounts[i]} הופעות (${(
+              stats.bonusProbabilities[i] * 100
+            ).toFixed(2)}%)</div>
+              `;
+            grid.appendChild(div);
+          }
+        }
+
+        function renderCombinationTables(stats) {
+          renderCombinationTable("pairsTable", "צמדים נפוצים", stats.topPairs);
+          renderCombinationTable(
+            "triplesTable",
+            "שלשות נפוצות",
+            stats.topTriples
+          );
+          renderCombinationTable(
+            "quadsTable",
+            "רביעיות נפוצות",
+            stats.topQuads
+          );
+          renderCombinationTable(
+            "quintsTable",
+            "חמישיות נפוצות",
+            stats.topQuints
+          );
+          renderCombinationTable(
+            "fullCombinationsTable",
+            "שישיות נפוצות",
+            stats.topFullCombinations
+          );
+        }
+
+        function renderCombinationTable(elementId, title, combinations) {
+          const container = document.getElementById(elementId);
+          container.innerHTML = "";
+
+          if (!combinations || combinations.length === 0) {
+            container.innerHTML = `<p class="no-data">לא נמצאו ${title} עם יותר ממופע אחד</p>`;
+            return;
+          }
+
+          const table = document.createElement("table");
+          table.innerHTML = `
+              <thead>
+                  <tr>
+                      <th>דירוג</th>
+                      <th>צירוף מספרים</th>
+                      <th>מספר הופעות</th>
+                      <th>תאריכי הגרלה</th>
+                  </tr>
+              </thead>
+              <tbody></tbody>
+          `;
+
+          const tbody = table.querySelector("tbody");
+          combinations.forEach((combo, idx) => {
+            const row = document.createElement("tr");
+            row.innerHTML = `
+                  <td>${idx + 1}</td>
+                  <td>${combo.numbers.join(", ")}</td>
+                  <td>${combo.count}</td>
+                  <td>${combo.dates.slice(0, 3).join(", ")}${
+              combo.dates.length > 3 ? "..." : ""
+            }</td>
+              `;
+            tbody.appendChild(row);
+          });
+
+          container.appendChild(table);
+        }
+
+        function renderRecommendations(recommendations) {
+          const container = document.getElementById("recommendationsContainer");
+          container.innerHTML = "";
+
+          if (!recommendations || recommendations.length === 0) {
+            container.innerHTML = '<p class="no-data">לא נמצאו המלצות</p>';
+            return;
+          }
+
+          recommendations.forEach((rec, idx) => {
+            const card = document.createElement("div");
+            card.className = "recommendation-card";
+            card.innerHTML = `
+                  <h3>המלצה ${idx + 1}</h3>
+                  <div class="recommendation-numbers">
+                      ${rec.numbers
+                        .map((n) => `<div class="main-number">${n}</div>`)
+                        .join("")}
+                      <div class="bonus-number">${rec.bonus}</div>
+                  </div>
+                  <p>צירוף 6 מספרים ומספר נוסף מומלץ</p>
+              `;
+            container.appendChild(card);
+          });
+        }
+      });
+
+      // פונקציה לפתיחת טאבים
+      function openTab(evt, tabName) {
+        const tabcontent = document.getElementsByClassName("tabcontent");
+        for (let i = 0; i < tabcontent.length; i++) {
+          tabcontent[i].style.display = "none";
+        }
+
+        const tablinks = document.getElementsByClassName("tablinks");
+        for (let i = 0; i < tablinks.length; i++) {
+          tablinks[i].className = tablinks[i].className.replace(" active", "");
+        }
+
+        document.getElementById(tabName).style.display = "block";
+        evt.currentTarget.className += " active";
+      }
+    </script>
+  </body>
+</html>
