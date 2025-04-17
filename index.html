@@ -809,24 +809,7 @@
         initColorPreviews();
         addImageRow();
       };
-
-
-
-
-      
-        // אמצעי הגנת העתקה
-
-document.addEventListener('contextmenu', function(e) {
-    e.preventDefault(); // חוסם קליק ימני
-});
-      document.addEventListener('keydown', function(e) {
-    // חוסם Ctrl+C, Ctrl+V, Ctrl+A, Ctrl+X
-    if (e.ctrlKey && (e.key === 'c' || e.key === 'v' || e.key === 'a' || e.key === 'x')) {
-        e.preventDefault();
-    }
-});
-
-      
+ 
     </script>
   </body>
 </html>
